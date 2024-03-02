@@ -1,10 +1,13 @@
 #include <cstring>
 #include <stdlib.h>
 
+#include "figures/plane.h"
+
+
 int main(int argc, char** argv) {
 
         if(strcmp(argv[1],"plane")==0){
-            plane(argv[4],atof(argv[2]), atof(argv[3]));
+            plane(argv[4], atof(argv[2]), atoi(argv[3]));
         }
 
         if(strcmp(argv[1],"box")==0){

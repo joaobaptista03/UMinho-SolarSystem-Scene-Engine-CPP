@@ -1,4 +1,0 @@
-Aqui vão ser as funções de desenho das figuras
-
-
-cada figura deverá ter uma (em principio)
