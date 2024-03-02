@@ -5,9 +5,14 @@
 #include <vector>
 
 void generatePlane(const std::string& fileName, float length, int divisions) {
-    std::ofstream outFile(fileName);
+   
+    std::string path = "../../Output/" + fileName;
+    std::ofstream outFile;
+    outFile.open(path);
     
+    //Execuatr aqui a escrita do ficheiro
 
+    outFile.close();
 
 }
 
