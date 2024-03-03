@@ -38,11 +38,3 @@ clean:
 	rm -f $(OBJECTS) $(EXECUTABLE)
 
 .PHONY: all clean
-
-# Enquanto nao funciona:
-# g++ -c ./figures/plane.cpp -o plane.o
-# g++ -c ./figures/box.cpp -o box.o
-# g++ -c ./figures/cone.cpp -o cone.o Ainda n existe
-# g++ -c ./figures/sphere.cpp -o sphere.o  
-# g++ -c main.cpp -o main.o
-# g++ main.o plane.o box.o -o generator
