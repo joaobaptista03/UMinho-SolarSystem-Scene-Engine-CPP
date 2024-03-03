@@ -1,0 +1,5 @@
+Phase1/Generator/generator
+Phase1/Generator/main.o
+Phase1/Generator/figures/box.o
+Phase1/Generator/figures/plane.o
+Phase1/Generator/figures/sphere.o
