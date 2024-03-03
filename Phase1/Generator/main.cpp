@@ -5,8 +5,6 @@
 #include "figures/box.h"
 #include "figures/sphere.h"
 
-
-
 int main(int argc, char** argv) {
 
         if(strcmp(argv[1],"plane")==0){
