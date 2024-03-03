@@ -39,4 +39,3 @@ clean:
 # g++ -c ./figures/sphere.cpp -o sphere.o  
 # g++ -c main.cpp -o main.o
 # g++ main.o plane.o box.o -o generator
-
