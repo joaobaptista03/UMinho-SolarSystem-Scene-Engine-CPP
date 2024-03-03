@@ -9,6 +9,11 @@ void generatePlane(const std::string& fileName, float length, int divisions) {
     std::string path = "../Output/" + fileName;
     std::ofstream outFile;
     outFile.open(path);
+
+    if (!outFile.is_open()) {
+        std::cerr << "Failed to open file: " << path << "\n";
+        return;
+    }
     
     float halfLength = length / 2.0f;
     float divisionSize = length / divisions;
@@ -19,7 +24,7 @@ void generatePlane(const std::string& fileName, float length, int divisions) {
         for (int j = 0; j <= divisions; ++j) {
             float x = -halfLength + j * divisionSize;
             float z = -halfLength + i * divisionSize;
-            outFile << x << " " << 0 << " " << z << std::endl;
+            outFile << x << " " << 0 << " " << z << "\n";
         }
     }
 
@@ -32,9 +37,9 @@ void generatePlane(const std::string& fileName, float length, int divisions) {
         int bottomRight = bottomLeft + 1;
 
         // First triangle (counter-clockwise)
-        outFile << topLeft << " " << bottomLeft << " " << bottomRight << std::endl;
+        outFile << topLeft << " " << bottomLeft << " " << bottomRight << "\n";
         // Second triangle (counter-clockwise)
-        outFile << topLeft << " " << bottomRight << " " << topRight << std::endl;
+        outFile << topLeft << " " << bottomRight << " " << topRight << "\n";
         }
     }
 
