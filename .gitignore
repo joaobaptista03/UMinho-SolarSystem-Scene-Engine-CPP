@@ -3,3 +3,4 @@ Phase1/Generator/main.o
 Phase1/Generator/box.o
 Phase1/Generator/plane.o
 Phase1/Generator/sphere.o
+Phase1/Generator/cone.o

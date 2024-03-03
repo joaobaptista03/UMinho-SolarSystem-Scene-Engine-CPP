@@ -8,7 +8,7 @@ CXXFLAGS = -Wall -g
 INCLUDES = -I./figures
 
 # Source files
-SOURCES = main.cpp figures/plane.cpp figures/box.cpp figures/sphere.cpp
+SOURCES = main.cpp figures/plane.cpp figures/box.cpp figures/sphere.cpp figures/cone.cpp
 
 # Object files directory
 OBJDIR = .
