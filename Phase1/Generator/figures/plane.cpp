@@ -24,7 +24,7 @@ void generatePlane(const std::string& fileName, float length, int divisions) {
         for (int j = 0; j <= divisions; ++j) {
             float x = -halfLength + j * divisionSize;
             float z = -halfLength + i * divisionSize;
-            outFile << x << " " << 0 << " " << z << "\n";
+            outFile << x << "," << 0 << "," << z << ","<< "\n";
         }
     }
 
@@ -37,9 +37,9 @@ void generatePlane(const std::string& fileName, float length, int divisions) {
         int bottomRight = bottomLeft + 1;
 
         // First triangle (counter-clockwise)
-        outFile << topLeft << " " << bottomLeft << " " << bottomRight << "\n";
+        outFile << topLeft << "," << bottomLeft << "," << bottomRight << "," << "\n";
         // Second triangle (counter-clockwise)
-        outFile << topLeft << " " << bottomRight << " " << topRight << "\n";
+        outFile << topLeft << "," << bottomRight << "," << topRight << "," << "\n";
         }
     }
 
