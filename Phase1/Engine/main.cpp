@@ -1,6 +1,139 @@
 #include <iostream>
 #include <fstream>
-#include <string> // Include the missing header
+#include <string>
+#include <vector>
+
+#ifdef __APPLE__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+int windowWidth = 0, windowHeight = 0;
+int cameraX = 0, cameraY = 0, cameraZ = 0;
+int lookAtX = 0, lookAtY = 0, lookAtZ = 0;
+int upX = 0, upY = 0, upZ = 0;
+int fov = 0, near = 0, far = 0;
+std::vector<std::string> files;
+
+float alfa = 0.0f, beta = 0.0f, radius = 5.0f;
+
+void changeSize(int w, int h) {
+
+	// Prevent a divide by zero, when window is too short
+	// (you cant make a window with zero width).
+	if(h == 0)
+		h = 1;
+
+	// compute window's aspect ratio 
+	float ratio = w * 1.0 / h;
+
+	// Set the projection matrix as current
+	glMatrixMode(GL_PROJECTION);
+	// Load Identity Matrix
+	glLoadIdentity();
+	
+	// Set the viewport to be the entire window
+    glViewport(0, 0, w, h);
+
+	// Set perspective
+	gluPerspective(45.0f ,ratio, 1.0f ,1000.0f);
+
+	// return to the model view matrix mode
+	glMatrixMode(GL_MODELVIEW);
+}
+
+void renderScene() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glLoadIdentity();
+	gluLookAt(cameraX, cameraY, cameraZ,
+			  0.0, 0.0, 0.0,
+			  0.0f, 1.0f, 0.0f);
+
+	// draw here
+
+	glutSwapBuffers();
+}
+
+void processKeys(unsigned char c, int xx, int yy) {
+
+	switch (c) {
+		case 'd':
+			alfa -= 0.1; break;
+
+		case 'a':
+			alfa += 0.1; break;
+
+		case 'w':
+			beta += 0.1f;
+			if (beta > 1.5f)
+				beta = 1.5f;
+			break;
+
+		case 's':
+			beta -= 0.1f;
+			if (beta < -1.5f)
+				beta = -1.5f;
+			break;
+
+		case 'q': radius -= 0.1f;
+			if (radius < 0.1f)
+				radius = 0.1f;
+			break;
+
+		case 'e': radius += 0.1f; break;
+	}
+
+	cameraX = radius * cos(beta) * sin(alfa);
+	cameraY = radius * sin(beta);
+	cameraZ = radius * cos(beta) * cos(alfa);
+
+	glutPostRedisplay();
+
+}
+
+
+void processSpecialKeys(int key, int xx, int yy) {
+
+	switch (key) {
+
+	case GLUT_KEY_RIGHT:
+		alfa -= 0.1; break;
+
+	case GLUT_KEY_LEFT:
+		alfa += 0.1; break;
+
+	case GLUT_KEY_UP:
+		beta += 0.1f;
+		if (beta > 1.5f)
+			beta = 1.5f;
+		break;
+
+	case GLUT_KEY_DOWN:
+		beta -= 0.1f;
+		if (beta < -1.5f)
+			beta = -1.5f;
+		break;
+
+	case GLUT_KEY_PAGE_DOWN: radius -= 0.1f;
+		if (radius < 0.1f)
+			radius = 0.1f;
+		break;
+
+	case GLUT_KEY_PAGE_UP: radius += 0.1f; break;
+	}
+	
+	cameraX = radius * cos(beta) * sin(alfa);
+	cameraY = radius * sin(beta);
+	cameraZ = radius * cos(beta) * cos(alfa);
+
+	glutPostRedisplay();
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -18,21 +151,6 @@ int main(int argc, char *argv[])
 		std::cerr << "Failed to open file: " << argv[1] << "\n";
 		return 2;
 	}
-
-	int windowWidth = 0;
-	int windowHeight = 0;
-	int cameraX = 0;
-	int cameraY = 0;
-	int cameraZ = 0;
-	int lookAtX = 0;
-	int lookAtY = 0;
-	int lookAtZ = 0;
-	int upX = 0;
-	int upY = 0;
-	int upZ = 0;
-	int fov = 0;
-	int near = 0;
-	int far = 0;
 
 	std::string line;
 	while (std::getline(inputFile, line))
@@ -141,10 +259,44 @@ int main(int argc, char *argv[])
 					near = std::stoi(nearStr);
 					far = std::stoi(farStr);
 				}
+		} else if (line.find("<model") != std::string::npos) {
+			std::size_t filePos = line.find("file=");
+
+			if (filePos != std::string::npos) {
+				std::size_t fileStart = line.find("\"", filePos) + 1;
+				std::size_t fileEnd = line.find("\"", fileStart);
+
+				std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
+
+				files.push_back(fileStr);
+			}
 		}
 	}
 
+	// init GLUT and the window
+		glutInit(&argc, argv);
+		glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA);
+		glutInitWindowPosition(100,100);
+		glutInitWindowSize(800,800);
+		glutCreateWindow("CG@DI-UM");
+			
+	// Required callback registry 
+		glutDisplayFunc(renderScene);
+		glutReshapeFunc(changeSize);
+		
+	// Callback registration for keyboard processing
+		glutKeyboardFunc(processKeys);
+		glutSpecialFunc(processSpecialKeys);
 
+	//  OpenGL settings
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
+		
+	// enter GLUT's main cycle
+		glutMainLoop();
+		
+
+	inputFile.close();
 
 	return 0;
 }
