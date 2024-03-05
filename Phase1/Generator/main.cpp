@@ -1,10 +1,10 @@
 #include <cstring>
 #include <stdlib.h>
 
-#include "figures/plane.h"
-#include "figures/box.h"
-#include "figures/sphere.h"
-#include "figures/cone.h"
+#include "figures/plane.hpp"
+#include "figures/box.hpp"
+#include "figures/sphere.hpp"
+#include "figures/cone.hpp"
 
 int main(int argc, char** argv) {
 

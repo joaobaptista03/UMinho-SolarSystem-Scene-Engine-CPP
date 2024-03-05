@@ -69,7 +69,7 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, in
 void generateBox(const std::string &fileName, float length, int divisions)
 {
 
-	std::string path = "Output/" + fileName;
+	std::string path = "../Output/" + fileName;
 	std::ofstream outFile;
 	outFile.open(path);
 

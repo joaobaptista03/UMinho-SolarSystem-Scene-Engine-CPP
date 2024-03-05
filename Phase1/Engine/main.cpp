@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -21,28 +22,58 @@ std::vector<std::string> files;
 
 float alfa = 0.0f, beta = 0.0f, radius = 5.0f;
 
-void changeSize(int w, int h) {
+void drawModel(std::string file) {
+	std::ifstream inputFile;
+	inputFile.open(file);
 
-	// Prevent a divide by zero, when window is too short
-	// (you cant make a window with zero width).
+	if (!inputFile.is_open())
+	{
+		std::cerr << "Failed to open file: " << file << "\n";
+		return;
+	}
+
+	std::string line;
+	while (std::getline(inputFile, line))
+	{
+		std::istringstream iss(line);
+		std::vector<std::string> tokens;
+		std::string token;
+		
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glColor3f(1.0f, 1.0f, 1.0f);
+		glBegin(GL_TRIANGLES);
+
+		while (iss >> token) {
+			std::istringstream subIss(token);
+			std::string subToken;
+			while (std::getline(subIss, subToken, ','))
+				tokens.push_back(subToken);
+			
+			if (tokens.size() == 3) {
+				glVertex3f(std::stof(tokens[0]), std::stof(tokens[1]), std::stof(tokens[2]));
+				tokens.clear();
+			}
+		}
+
+		glEnd();
+	}
+
+	inputFile.close();
+}
+
+void changeSize(int w, int h) {
 	if(h == 0)
 		h = 1;
 
-	// compute window's aspect ratio 
 	float ratio = w * 1.0 / h;
 
-	// Set the projection matrix as current
 	glMatrixMode(GL_PROJECTION);
-	// Load Identity Matrix
 	glLoadIdentity();
-	
-	// Set the viewport to be the entire window
     glViewport(0, 0, w, h);
 
-	// Set perspective
-	gluPerspective(45.0f ,ratio, 1.0f ,1000.0f);
+	gluPerspective(fov, ratio, near, far);
 
-	// return to the model view matrix mode
 	glMatrixMode(GL_MODELVIEW);
 }
 
@@ -51,10 +82,26 @@ void renderScene() {
 
 	glLoadIdentity();
 	gluLookAt(cameraX, cameraY, cameraZ,
-			  0.0, 0.0, 0.0,
-			  0.0f, 1.0f, 0.0f);
+			  lookAtX, lookAtY, lookAtZ,
+			  upX, upY, upZ);
 
-	// draw here
+	glBegin(GL_LINES);
+		// X axis in red
+		glColor3f(1.0f, 0.0f, 0.0f);
+		glVertex3f(-5.0f, 0.0f, 0.0f);
+		glVertex3f(5.0f, 0.0f, 0.0f);
+		// Y Axis in green
+		glColor3f(0.0f, 1.0f, 0.0f);
+		glVertex3f(0.0f, -5.0f, 0.0f);
+		glVertex3f(0.0f, 5.0f, 0.0f);
+		// Z Axis in blue
+		glColor3f(0.0f, 0.0f, 1.0f);
+		glVertex3f(0.0f, 0.0f, -5.0f);
+		glVertex3f(0.0f, 0.0f, 5.0f);
+	glEnd();
+
+	for (int i = 0; i < files.size(); i++)
+		drawModel(files[i]);
 
 	glutSwapBuffers();
 }
@@ -93,38 +140,35 @@ void processKeys(unsigned char c, int xx, int yy) {
 	cameraZ = radius * cos(beta) * cos(alfa);
 
 	glutPostRedisplay();
-
 }
 
 
 void processSpecialKeys(int key, int xx, int yy) {
-
 	switch (key) {
+		case GLUT_KEY_RIGHT:
+			alfa -= 0.1; break;
 
-	case GLUT_KEY_RIGHT:
-		alfa -= 0.1; break;
+		case GLUT_KEY_LEFT:
+			alfa += 0.1; break;
 
-	case GLUT_KEY_LEFT:
-		alfa += 0.1; break;
+		case GLUT_KEY_UP:
+			beta += 0.1f;
+			if (beta > 1.5f)
+				beta = 1.5f;
+			break;
 
-	case GLUT_KEY_UP:
-		beta += 0.1f;
-		if (beta > 1.5f)
-			beta = 1.5f;
-		break;
+		case GLUT_KEY_DOWN:
+			beta -= 0.1f;
+			if (beta < -1.5f)
+				beta = -1.5f;
+			break;
 
-	case GLUT_KEY_DOWN:
-		beta -= 0.1f;
-		if (beta < -1.5f)
-			beta = -1.5f;
-		break;
+		case GLUT_KEY_PAGE_DOWN: radius -= 0.1f;
+			if (radius < 0.1f)
+				radius = 0.1f;
+			break;
 
-	case GLUT_KEY_PAGE_DOWN: radius -= 0.1f;
-		if (radius < 0.1f)
-			radius = 0.1f;
-		break;
-
-	case GLUT_KEY_PAGE_UP: radius += 0.1f; break;
+		case GLUT_KEY_PAGE_UP: radius += 0.1f; break;
 	}
 	
 	cameraX = radius * cos(beta) * sin(alfa);
@@ -132,7 +176,6 @@ void processSpecialKeys(int key, int xx, int yy) {
 	cameraZ = radius * cos(beta) * cos(alfa);
 
 	glutPostRedisplay();
-
 }
 
 int main(int argc, char *argv[])
@@ -268,7 +311,7 @@ int main(int argc, char *argv[])
 
 				std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
 
-				files.push_back(fileStr);
+				files.push_back("../Output/" + fileStr);
 			}
 		}
 	}
@@ -277,7 +320,7 @@ int main(int argc, char *argv[])
 		glutInit(&argc, argv);
 		glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA);
 		glutInitWindowPosition(100,100);
-		glutInitWindowSize(800,800);
+		glutInitWindowSize(windowWidth, windowHeight);
 		glutCreateWindow("CG@DI-UM");
 			
 	// Required callback registry 
@@ -294,7 +337,6 @@ int main(int argc, char *argv[])
 		
 	// enter GLUT's main cycle
 		glutMainLoop();
-		
 
 	inputFile.close();
 

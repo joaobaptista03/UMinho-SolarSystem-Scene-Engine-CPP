@@ -7,10 +7,10 @@
 
 void generateCone(const std::string &fileName, float radius, float height, int slices, int stacks)
 {
-
 	std::string path = "../Output/" + fileName;
 	std::ofstream outFile;
 	outFile.open(path);
+	float** geral = new float*[slices * stacks * 2];
 
 	if (!outFile.is_open())
 	{
@@ -18,8 +18,11 @@ void generateCone(const std::string &fileName, float radius, float height, int s
 		return;
 	}
 
-	outFile << "0," << height << ",0"
-			<< "," << std::endl; // Tip of the cone is now the first vertex
+	float *apex = new float[3];
+	apex[0] = 0;
+	apex[1] = height;
+	apex[2] = 0;
+	geral[0] = apex;
 
 	// Generate vertices for the base of the cone
 	for (int slice = 0; slice < slices; ++slice)
@@ -27,7 +30,11 @@ void generateCone(const std::string &fileName, float radius, float height, int s
 		float theta = (2.0f * M_PI * slice) / slices;
 		float x = radius * cos(theta);
 		float z = radius * sin(theta);
-		outFile << x << "," << 0 << "," << z << "," << std::endl; // y = 0 for the base vertices
+		float *ponto = new float[3];
+		ponto[0] = x;
+		ponto[1] = 0;
+		ponto[2] = z;
+		geral[slice + 1] = ponto;
 	}
 
 	// Generate vertices for the sides of the cone
@@ -40,39 +47,47 @@ void generateCone(const std::string &fileName, float radius, float height, int s
 			float theta = (float)slice / slices * 2 * M_PI;
 			float x = r * cos(theta);
 			float z = r * sin(theta);
-			outFile << x << "," << y << "," << z << "," << std::endl;
+			float *ponto = new float[3];
+			ponto[0] = x;
+			ponto[1] = y;
+			ponto[2] = z;
+			geral[stack * slices + slice + 1] = ponto;
 		}
 	}
 
-	outFile << "0,"
-			<< "0"
-			<< ",0"
-			<< "," << std::endl; // Tip of the cone is now the first vertex
+
+	float *origin = new float[3];
+	origin[0] = 0;
+	origin[1] = 0;
+	origin[2] = 0;
+	geral[stacks * slices + 1] = origin;
+
 
 	int apexIndex = 0;
 	int baseStartIndex = 1;
-	int origin = stacks * slices + 1;
+	int originIndex = stacks * slices + 1;
 
 	// Generate triangles for the sides of the cone
 	for (int stack = 0; stack < stacks; ++stack)
 	{
 		for (int slice = 0; slice < slices; ++slice)
 		{
-			// Calculate the four corners of the "square"
-			int bottomRight = baseStartIndex + (stack * slices) + slice;
-			int bottomLeft = baseStartIndex + (stack * slices) + ((slice + 1) % slices);
-			int topLeft = baseStartIndex + ((stack + 1) * slices) + ((slice + 1) % slices);
-			int topRight = baseStartIndex + ((stack + 1) * slices) + slice;
+            int bottomRight = baseStartIndex + (stack * slices) + slice;
+            int bottomLeft = baseStartIndex + (stack * slices) + ((slice + 1) % slices);
+            int topLeft = baseStartIndex + ((stack + 1) * slices) + ((slice + 1) % slices);
+            int topRight = baseStartIndex + ((stack + 1) * slices) + slice;
 
 			// The triangles for the side
-			if (stack == 2)
+			if (stack == stacks - 1)
 			{ // If it's the first stack, connect to the apex
-				outFile << apexIndex << "," << bottomLeft << "," << bottomRight << "," << std::endl;
+				outFile << geral[apexIndex][0] << "," << geral[apexIndex][1] << "," << geral[apexIndex][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
 			}
 			else
 			{ // For stacks between the apex and base
-				outFile << topLeft << "," << bottomLeft << "," << bottomRight << "," << std::endl;
-				outFile << topLeft << "," << bottomRight << "," << topRight << "," << std::endl;
+
+				outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
+				outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << "\n";
+
 			}
 		}
 	}
@@ -80,9 +95,15 @@ void generateCone(const std::string &fileName, float radius, float height, int s
 	// Generate triangles for the base of the cone
 	for (int slice = 1; slice < slices; ++slice)
 	{
-		outFile << slice << "," << (slice + 1) << "," << origin << "," << std::endl;
+		outFile << geral[slice][0] << "," << geral[slice][1] << "," << geral[slice][2] << " " << geral[(slice + 1)][0] << "," << geral[(slice + 1)][1] << "," << geral[(slice + 1)][2] << " " << geral[originIndex][0] << "," << geral[originIndex][1] << "," << geral[originIndex][2] << "\n";
+
 	}
-	outFile << slices << "," << 1 << "," << origin << "," << std::endl;
+	outFile << geral[slices][0] << "," << geral[slices][1] << "," << geral[slices][2] << " " << geral[1][0] << "," << geral[1][1] << "," << geral[1][2] << " " << geral[originIndex][0] << "," << geral[originIndex][1] << "," << geral[originIndex][2] << "\n";
+
+	for (int i = 0; i < slices * stacks * 2; i++)
+	{
+		delete[] geral[i];
+	}
 
 	outFile.close();
 }
