@@ -16,11 +16,11 @@ void generateFace(std::ofstream& outFile, int divisions, float halfDimension, in
             float third = normalDirection * halfDimension;
 
             if (axis == "xy") {
-                outFile << first << " " << second << " " << third << "\n";
+                outFile << first << "," << second << "," << third << "," <<"\n";
             } else if (axis == "xz") {
-                outFile << first << " " << third << " " << second << "\n";
+                outFile << first << "," << third << "," << second << "," << "\n";
             } else if (axis == "yz") {
-                outFile << third << " " << first << " " << second << "\n";
+                outFile << third << "," << first << "," << second << "," << "\n";
             }
         }
     }
@@ -33,8 +33,8 @@ void generateFace(std::ofstream& outFile, int divisions, float halfDimension, in
             int bottomLeft = topLeft + (divisions + 1);
             int bottomRight = bottomLeft + 1;
 
-            outFile << topLeft << " " << bottomLeft << " " << bottomRight << "\n";
-            outFile << topLeft << " " << bottomRight << " " << topRight << "\n";
+            outFile << topLeft << "," << bottomLeft << "," << bottomRight << "," << "\n";
+            outFile << topLeft << "," << bottomRight << "," << topRight << "," << "\n";
         }
     }
 
