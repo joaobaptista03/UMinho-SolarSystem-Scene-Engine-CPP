@@ -7,7 +7,7 @@
 
 void generatePlane(const std::string& fileName, float length, int divisions) {
    
-    std::string path = "../Output/" + fileName;
+    std::string path = "Output/" + fileName;
     std::ofstream outFile;
     outFile.open(path);
 

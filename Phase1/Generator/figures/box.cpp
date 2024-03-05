@@ -7,34 +7,48 @@
 
 void generateFace(std::ofstream& outFile, int divisions, float halfDimension, int& vertexOffset, const std::string& axis, float normalDirection) {
     float step = halfDimension * 2 / divisions;
+    float** geral = new float*[(divisions + 1) * (divisions + 1)];
+   std::cout << "Inicio" << "\n";
 
-    // Generate vertices
     for (int i = 0; i <= divisions; ++i) {
         for (int j = 0; j <= divisions; ++j) {
             float first = -halfDimension + j * step;
             float second = halfDimension - i * step; // Invert the second coordinate to start from the top
             float third = normalDirection * halfDimension;
 
+            float* ponto = new float[3];
             if (axis == "xy") {
-                outFile << first << "," << second << "," << third << "," <<"\n";
+                ponto[0] = first;
+                ponto[1] = second;
+                ponto[2] = third;
             } else if (axis == "xz") {
-                outFile << first << "," << third << "," << second << "," << "\n";
+                ponto[0] = first;
+                ponto[1] = third;
+                ponto[2] = second;
             } else if (axis == "yz") {
-                outFile << third << "," << first << "," << second << "," << "\n";
+                ponto[0] = third;
+                ponto[1] = first;
+                ponto[2] = second;
             }
+
+            std::cout << "first: " << ponto[0] << " second: " << ponto[1] << " third: " << ponto[2] << "\n";
+            geral[i * (divisions + 1) + j] = ponto;
         }
     }
-
-    // Generate indices for triangles
+   
     for (int i = 0; i < divisions; ++i) {
         for (int j = 0; j < divisions; ++j) {
-            int topLeft = vertexOffset + i * (divisions + 1) + j;
+            std::cout << "i: " << i << " j: " << j << "\n";
+            int topLeft = i * (divisions + 1) + j; // + vertexOffset;
             int topRight = topLeft + 1;
             int bottomLeft = topLeft + (divisions + 1);
             int bottomRight = bottomLeft + 1;
 
-            outFile << topLeft << "," << bottomLeft << "," << bottomRight << "," << "\n";
-            outFile << topLeft << "," << bottomRight << "," << topRight << "," << "\n";
+
+            // First triangle (counter-clockwise)
+            outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2]<< " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
+            // Second triangle (counter-clockwise)
+            outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2]<< " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << "\n";
         }
     }
 
@@ -44,7 +58,7 @@ void generateFace(std::ofstream& outFile, int divisions, float halfDimension, in
 // Function to generate all faces of the box
 void generateBox(const std::string& fileName, float length, int divisions) {
     
-    std::string path = "../Output/" + fileName;
+    std::string path = "Output/" + fileName;
     std::ofstream outFile;
     outFile.open(path);
 
