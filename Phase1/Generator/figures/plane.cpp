@@ -23,7 +23,7 @@ void generatePlane(const std::string &fileName, float length, int divisions)
 	float **geral = new float *[(divisions + 1) * (divisions + 1)];
 	int count = 0;
 
-	// Write vertices
+	// Vertices of the plane
 	for (int i = 0; i <= divisions; ++i)
 	{
 		for (int j = 0; j <= divisions; ++j)
@@ -39,7 +39,7 @@ void generatePlane(const std::string &fileName, float length, int divisions)
 		}
 	}
 
-	// Write triangle definitions using the indices of the vertices
+	//Triangles of the plane
 	for (int i = 0; i < divisions; ++i)
 	{
 		for (int j = 0; j < divisions; ++j)
@@ -49,9 +49,7 @@ void generatePlane(const std::string &fileName, float length, int divisions)
 			int bottomLeft = (i + 1) * verticesPerLine + j;
 			int bottomRight = bottomLeft + 1;
 
-			// First triangle (counter-clockwise)
 			outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
-			// Second triangle (counter-clockwise)
 			outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << "\n";
 		}
 	}

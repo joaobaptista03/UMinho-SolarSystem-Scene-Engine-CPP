@@ -20,17 +20,18 @@ void generateSphere(const std::string &fileName, float radius, int slices, int s
 		return;
 	}
 
+	// Vertices of the sphere
 	for (int stack = 0; stack <= stacks; ++stack)
 	{
-		float phi = M_PI / 2 - (float)stack / stacks * M_PI; // From pi/2 to -pi/2
-		float y = radius * sin(phi);						 // y is the same for each slice on a stack
+		float phi = M_PI / 2 - (float)stack / stacks * M_PI; 
+		float y = radius * sin(phi);						
 		float r = radius * cos(phi);
 
 		for (int slice = 0; slice <= slices; ++slice)
 		{
 			float *ponto = new float[3];
-			float theta = (float)slice / slices * 2 * M_PI; // From 0 to 2pi
-			float x = r * sin(theta);						// x, z vary with slice
+			float theta = (float)slice / slices * 2 * M_PI;
+			float x = r * sin(theta);					
 			float z = r * cos(theta);
 			ponto[0] = x;
 			ponto[1] = y;
@@ -39,6 +40,7 @@ void generateSphere(const std::string &fileName, float radius, int slices, int s
 		}
 	}
 
+	//Triangles of the sphere
 	for (int stack = 0; stack < stacks; ++stack)
 	{
 		for (int slice = 0; slice < slices; ++slice)

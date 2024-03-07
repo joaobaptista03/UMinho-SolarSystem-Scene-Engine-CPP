@@ -10,39 +10,41 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
 	float step = halfDimension * 2 / divisions;
 	float **geral = new float *[(divisions + 1) * (divisions + 1)];
 
+	// Generate all points of the face
 	for (int i = 0; i <= divisions; ++i)
 	{
 		for (int j = 0; j <= divisions; ++j)
 		{
-			float first = -halfDimension + j * step;
-			float second = halfDimension - i * step; // Invert the second coordinate to start from the top
-			float third = normalDirection * halfDimension;
+			float x = -halfDimension + j * step;
+			float y = halfDimension - i * step;
+			float z = normalDirection * halfDimension;
 			
 
 			float *ponto = new float[3];
 			if (axis == "xy")
 			{
-				ponto[0] = first;
-				ponto[1] = second;
-				ponto[2] = third;
+				ponto[0] = x;
+				ponto[1] = y;
+				ponto[2] = z;
 			}
 			else if (axis == "xz")
 			{
-				ponto[0] = first;
-				ponto[1] = third;
-				ponto[2] = second;
+				ponto[0] = x;
+				ponto[1] = z;
+				ponto[2] = y;
 			}
 			else if (axis == "yz")
 			{
-				ponto[0] = third;
-				ponto[1] = first;
-				ponto[2] = second;
+				ponto[0] = z;
+				ponto[1] = x;
+				ponto[2] = y;
 			}
 
 			geral[i * (divisions + 1) + j] = ponto;
 		}
 	}
 
+	// Triangles of the face
 	for (int i = 0; i < divisions; ++i)
 	{
 		for (int j = 0; j < divisions; ++j)
@@ -107,13 +109,13 @@ void generateBox(const std::string &fileName, float length, int divisions)
 
 	float halfDimension = length / 2.0f;
 
-	// Generate each face of the box
-	generateFace(outFile, divisions, halfDimension, "xy", 1);	 // Front face (positive z)
-	generateFace(outFile, divisions, halfDimension, "xy", -1); // Back face (negative z)
-	generateFace(outFile, divisions, halfDimension, "xz", 1);	 // Top face (positive y)
-	generateFace(outFile, divisions, halfDimension, "xz", -1); // Bottom face (negative y)
-	generateFace(outFile, divisions, halfDimension, "yz", 1);	 // Right face (positive x)
-	generateFace(outFile, divisions, halfDimension, "yz", -1); // Left face (negative x)
+	// Each face of the box
+	generateFace(outFile, divisions, halfDimension, "xy", 1);
+	generateFace(outFile, divisions, halfDimension, "xy", -1); 
+	generateFace(outFile, divisions, halfDimension, "xz", 1);
+	generateFace(outFile, divisions, halfDimension, "xz", -1); 
+	generateFace(outFile, divisions, halfDimension, "yz", 1);
+	generateFace(outFile, divisions, halfDimension, "yz", -1); 
 
 	outFile.close();
 }
