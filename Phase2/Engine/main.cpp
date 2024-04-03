@@ -46,6 +46,7 @@ struct Group{
 	Translate translate;
 	Rotate rotate;
 	Scale scale;
+    bool hasTranslate = false, hasRotate = false, hasScale = false;
 	std::vector<std::string> models;
 	std::vector<Group> subgroups;
 	Group *parent;
@@ -114,6 +115,37 @@ void drawModel(std::string file) {
 	inputFile.close();
 }
 
+
+void drawGroup(const Group& group) {
+    // Push the current matrix to preserve the GL state
+    glPushMatrix();
+
+    // Apply transformations
+    if (group.hasTranslate) {
+        glTranslatef(group.translate.x, group.translate.y, group.translate.z);
+    }
+    if (group.hasRotate) {
+        glRotatef(group.rotate.angle, group.rotate.x, group.rotate.y, group.rotate.z);
+    }
+    if (group.hasScale) {
+        glScalef(group.scale.x, group.scale.y, group.scale.z);
+    }
+
+    // Draw each model in this group
+    for (const std::string& modelFile : group.models) {
+        drawModel(modelFile); // Assuming drawModel takes a file path and draws the model
+    }
+
+    // Recursively draw subgroups with their transformations
+    for (const Group& subgroup : group.subgroups) {
+        drawGroup(subgroup);
+    }
+
+    // Pop the matrix after drawing this group and its children to revert to the previous state
+    glPopMatrix();
+}
+
+
 void changeSize(int w, int h) {
 	if(h == 0)
 		h = 1;
@@ -155,6 +187,10 @@ void renderScene() {
 		glVertex3f(0.0f, 0.0f, 5.0f);
 	glEnd();
 
+	for (const Group& group : sceneGraph) {
+		drawGroup(group);
+	}
+	
 	glutSwapBuffers();
 }
 
@@ -360,6 +396,7 @@ int main(int argc, char *argv[])
 		} else if (line.find("</group") != std::string::npos) {
 			endGroup();
 		} else if (line.find("<translate") != std::string::npos) {
+			groupStack.top()->hasTranslate = true;
 			std::size_t xPos = line.find("x=");
 			std::size_t yPos = line.find("y=");
 			std::size_t zPos = line.find("z=");
@@ -381,6 +418,7 @@ int main(int argc, char *argv[])
 				groupStack.top()->translate.z = std::stof(zStr);
 			}
 		} else if (line.find("<rotate") != std::string::npos) {
+			groupStack.top()->hasRotate = true;
 			std::size_t anglePos = line.find("angle=");
 			std::size_t xPos = line.find("x=");
 			std::size_t yPos = line.find("y=");
@@ -407,6 +445,7 @@ int main(int argc, char *argv[])
 				groupStack.top()->rotate.z = std::stof(zStr);
 			}
 		} else if (line.find("<scale") != std::string::npos) {
+			groupStack.top()->hasScale = true;
 			std::size_t xPos = line.find("x=");
 			std::size_t yPos = line.find("y=");
 			std::size_t zPos = line.find("z=");
