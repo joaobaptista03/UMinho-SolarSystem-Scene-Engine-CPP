@@ -19,7 +19,6 @@ int cameraX = 0, cameraY = 0, cameraZ = 0;
 int lookAtX = 0, lookAtY = 0, lookAtZ = 0;
 int upX = 0, upY = 0, upZ = 0;
 int fov = 0, near = 0, far = 0;
-std::vector<std::string> files;
 
 float alfa = 0.0f, beta = 0.0f, radius = 5.0f;
 
@@ -155,9 +154,6 @@ void renderScene() {
 		glColor3f(1.0f, 0.0f, 1.0f);
 		glVertex3f(0.0f, 0.0f, 5.0f);
 	glEnd();
-
-	for (int i = 0; i < files.size(); i++)
-		drawModel(files[i]);
 
 	glutSwapBuffers();
 }
@@ -439,7 +435,7 @@ int main(int argc, char *argv[])
 				std::size_t fileEnd = line.find("\"", fileStart);
 
 				std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
-				files.push_back(fileStr);
+				groupStack.top()->models.push_back(fileStr);
 			}
 		}
 	}
