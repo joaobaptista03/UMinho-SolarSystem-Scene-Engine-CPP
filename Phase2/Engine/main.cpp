@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 
+#include <stack>
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
@@ -21,6 +22,58 @@ int fov = 0, near = 0, far = 0;
 std::vector<std::string> files;
 
 float alfa = 0.0f, beta = 0.0f, radius = 5.0f;
+
+
+struct Translate{
+	float x;
+	float y;
+	float z;
+};
+
+struct Scale{
+	float x;
+	float y;
+	float z;
+};
+
+struct Rotate{
+	float angle;
+	float x;
+	float y;
+	float z;
+};
+
+struct Group{
+	Translate translate;
+	Rotate rotate;
+	Scale scale;
+	std::vector<std::string> models;
+	std::vector<Group> subgroups;
+	Group *parent;
+};
+
+std::vector<Group> sceneGraph; // Holds the root groups of your scene
+std::stack<Group*> groupStack; // Used to manage group hierarchy during parsing
+
+void startGroup() {
+    if (groupStack.empty()) {
+        // This is the root group
+        sceneGraph.emplace_back(); // Add a new Group to the scene graph
+        groupStack.push(&sceneGraph.back()); // Push the address of the newly added Group onto the stack
+    } else {
+        // This is a child group, add it to the current top of the stack group
+        groupStack.top()->subgroups.emplace_back(); // Add a new Group to the current parent group
+        groupStack.push(&groupStack.top()->subgroups.back()); // Push the address of the newly added Group onto the stack
+    }
+}
+
+void endGroup() {
+    if (!groupStack.empty()) {
+        groupStack.pop(); // Pop the current group off the stack, moving up the hierarchy
+    } else {
+        std::cerr << "Error: Group end tag without matching start tag.\n";
+    }
+}
 
 void drawModel(std::string file) {
 	std::ifstream inputFile;
@@ -199,6 +252,7 @@ int main(int argc, char *argv[])
 	}
 
 	std::string line;
+	Group* currentGroup = nullptr;
 	while (std::getline(inputFile, line))
 	{
 		if (line.find("<window") != std::string::npos) {
@@ -305,6 +359,78 @@ int main(int argc, char *argv[])
 					near = std::stoi(nearStr);
 					far = std::stoi(farStr);
 				}
+		} else if (line.find("<group") != std::string::npos) {
+			startGroup();
+		} else if (line.find("</group") != std::string::npos) {
+			endGroup();
+		} else if (line.find("<translate") != std::string::npos) {
+			std::size_t xPos = line.find("x=");
+			std::size_t yPos = line.find("y=");
+			std::size_t zPos = line.find("z=");
+
+			if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+				std::size_t xStart = line.find("\"", xPos) + 1;
+				std::size_t xEnd = line.find("\"", xStart);
+				std::size_t yStart = line.find("\"", yPos) + 1;
+				std::size_t yEnd = line.find("\"", yStart);
+				std::size_t zStart = line.find("\"", zPos) + 1;
+				std::size_t zEnd = line.find("\"", zStart);
+
+				std::string xStr = line.substr(xStart, xEnd - xStart);
+				std::string yStr = line.substr(yStart, yEnd - yStart);
+				std::string zStr = line.substr(zStart, zEnd - zStart);
+
+				groupStack.top()->translate.x = std::stof(xStr);
+				groupStack.top()->translate.y = std::stof(yStr);
+				groupStack.top()->translate.z = std::stof(zStr);
+			}
+		} else if (line.find("<rotate") != std::string::npos) {
+			std::size_t anglePos = line.find("angle=");
+			std::size_t xPos = line.find("x=");
+			std::size_t yPos = line.find("y=");
+			std::size_t zPos = line.find("z=");
+
+			if (anglePos != std::string::npos && xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+				std::size_t angleStart = line.find("\"", anglePos) + 1;
+				std::size_t angleEnd = line.find("\"", angleStart);
+				std::size_t xStart = line.find("\"", xPos) + 1;
+				std::size_t xEnd = line.find("\"", xStart);
+				std::size_t yStart = line.find("\"", yPos) + 1;
+				std::size_t yEnd = line.find("\"", yStart);
+				std::size_t zStart = line.find("\"", zPos) + 1;
+				std::size_t zEnd = line.find("\"", zStart);
+
+				std::string angleStr = line.substr(angleStart, angleEnd - angleStart);
+				std::string xStr = line.substr(xStart, xEnd - xStart);
+				std::string yStr = line.substr(yStart, yEnd - yStart);
+				std::string zStr = line.substr(zStart, zEnd - zStart);
+
+				groupStack.top()->rotate.angle = std::stof(angleStr);
+				groupStack.top()->rotate.x = std::stof(xStr);
+				groupStack.top()->rotate.y = std::stof(yStr);
+				groupStack.top()->rotate.z = std::stof(zStr);
+			}
+		} else if (line.find("<scale") != std::string::npos) {
+			std::size_t xPos = line.find("x=");
+			std::size_t yPos = line.find("y=");
+			std::size_t zPos = line.find("z=");
+
+			if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+				std::size_t xStart = line.find("\"", xPos) + 1;
+				std::size_t xEnd = line.find("\"", xStart);
+				std::size_t yStart = line.find("\"", yPos) + 1;
+				std::size_t yEnd = line.find("\"", yStart);
+				std::size_t zStart = line.find("\"", zPos) + 1;
+				std::size_t zEnd = line.find("\"", zStart);
+
+				std::string xStr = line.substr(xStart, xEnd - xStart);
+				std::string yStr = line.substr(yStart, yEnd - yStart);
+				std::string zStr = line.substr(zStart, zEnd - zStart);
+
+				groupStack.top()->scale.x = std::stof(xStr);
+				groupStack.top()->scale.y = std::stof(yStr);
+				groupStack.top()->scale.z = std::stof(zStr);
+			}
 		} else if (line.find("<model") != std::string::npos) {
 			std::size_t filePos = line.find("file=");
 
@@ -313,12 +439,10 @@ int main(int argc, char *argv[])
 				std::size_t fileEnd = line.find("\"", fileStart);
 
 				std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
-
-				files.push_back("../Output/" + fileStr);
+				files.push_back(fileStr);
 			}
 		}
 	}
-
 	// init GLUT and the window
 		glutInit(&argc, argv);
 		glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA);

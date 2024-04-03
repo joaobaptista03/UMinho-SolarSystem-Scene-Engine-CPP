@@ -1,0 +1,3 @@
+/home/joao/CG/Projeto/UMinho_SolarSystem3DEngine/Phase2/Engine/build/CMakeFiles/engine.dir
+/home/joao/CG/Projeto/UMinho_SolarSystem3DEngine/Phase2/Engine/build/CMakeFiles/edit_cache.dir
+/home/joao/CG/Projeto/UMinho_SolarSystem3DEngine/Phase2/Engine/build/CMakeFiles/rebuild_cache.dir
