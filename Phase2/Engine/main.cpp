@@ -56,7 +56,7 @@ struct Group{
 std::vector<Group> sceneGraph; // The root of the scene graph
 std::stack<Group*> groupStack; // For keeping track of the current group in the hierarchy
 
-void startGroup() {
+void openGroup() {
     if (groupStack.empty()) {
         sceneGraph.emplace_back();
         groupStack.push(&sceneGraph.back()); 
@@ -66,7 +66,7 @@ void startGroup() {
     }
 }
 
-void endGroup() {
+void closeGroup() {
     if (!groupStack.empty()) {
         groupStack.pop(); 
     } else {
@@ -295,41 +295,33 @@ void processMouseButtons(int button, int state, int xx, int yy) {
 
 
 void processMouseMotion(int xx, int yy) {
+    int deltaX, deltaY;
 
-	int deltaX, deltaY;
-	int alphaAux, betaAux;
-	int rAux;
+    if (!tracking) return;
 
-	if (!tracking)
-		return;
+    deltaX = xx - startX; // How much has the mouse moved?
+    deltaY = yy - startY;
 
-	deltaX = xx - startX;
-	deltaY = yy - startY;
+    if (tracking == 1) {
+        // Adjust angles based on movement
+        alfa += deltaX * 0.1; // Adjust rotation speed if necessary
+        beta += deltaY * 0.1;
 
-	if (tracking == 1) {
+        // Clamp beta to prevent flipping
+        if (beta > 85.0) beta = 85.0;
+        else if (beta < -85.0) beta = -85.0;
+    } else if (tracking == 2) {
+        // Zoom in/out
+        radius -= deltaY * 0.1; // Adjust zoom speed if necessary
+        if (radius < 3) radius = 3;
+    }
 
+    // Update camera position based on new angles and radius
+    cameraX = radius * cos(beta * M_PI / 180.0) * sin(alfa * M_PI / 180.0);
+    cameraY = radius * sin(beta * M_PI / 180.0);
+    cameraZ = radius * cos(beta * M_PI / 180.0) * cos(alfa * M_PI / 180.0);
 
-		alphaAux = alfa + deltaX;
-		betaAux = beta + deltaY;
-
-		if (betaAux > 85.0)
-			betaAux = 85.0;
-		else if (betaAux < -85.0)
-			betaAux = -85.0;
-
-		rAux = radius;
-	}
-	else if (tracking == 2) {
-
-		alphaAux = alfa;
-		betaAux = beta;
-		rAux = radius - deltaY;
-		if (rAux < 3)
-			rAux = 3;
-	}
-	cameraX = rAux * sin(alphaAux * 3.14 / 180.0) * cos(betaAux * 3.14 / 180.0);
-	cameraZ = rAux * cos(alphaAux * 3.14 / 180.0) * cos(betaAux * 3.14 / 180.0);
-	cameraY = rAux * 							     sin(betaAux * 3.14 / 180.0);
+    glutPostRedisplay(); // Mark the current window as needing to be redisplayed
 }
 
 
@@ -459,9 +451,9 @@ int main(int argc, char *argv[])
 					far = std::stoi(farStr);
 				}
 		} else if (line.find("<group") != std::string::npos) {
-			startGroup();
+			openGroup();
 		} else if (line.find("</group") != std::string::npos) {
-			endGroup();
+			closeGroup();
 		} else if (line.find("<translate") != std::string::npos) {
 			groupStack.top()->hasTranslate = true;
 			std::size_t xPos = line.find("x=");
