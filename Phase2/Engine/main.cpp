@@ -52,24 +52,22 @@ struct Group{
 	Group *parent;
 };
 
-std::vector<Group> sceneGraph; // Holds the root groups of your scene
-std::stack<Group*> groupStack; // Used to manage group hierarchy during parsing
+std::vector<Group> sceneGraph; // The root of the scene graph
+std::stack<Group*> groupStack; // For keeping track of the current group in the hierarchy
 
 void startGroup() {
     if (groupStack.empty()) {
-        // This is the root group
-        sceneGraph.emplace_back(); // Add a new Group to the scene graph
-        groupStack.push(&sceneGraph.back()); // Push the address of the newly added Group onto the stack
+        sceneGraph.emplace_back();
+        groupStack.push(&sceneGraph.back()); 
     } else {
-        // This is a child group, add it to the current top of the stack group
-        groupStack.top()->subgroups.emplace_back(); // Add a new Group to the current parent group
-        groupStack.push(&groupStack.top()->subgroups.back()); // Push the address of the newly added Group onto the stack
+        groupStack.top()->subgroups.emplace_back();
+        groupStack.push(&groupStack.top()->subgroups.back()); 
     }
 }
 
 void endGroup() {
     if (!groupStack.empty()) {
-        groupStack.pop(); // Pop the current group off the stack, moving up the hierarchy
+        groupStack.pop(); 
     } else {
         std::cerr << "Error: Group end tag without matching start tag.\n";
     }
@@ -77,7 +75,7 @@ void endGroup() {
 
 void drawModel(std::string file) {
 	std::ifstream inputFile;
-	inputFile.open("../Output/" + file);
+	inputFile.open(file);
 
 	if (!inputFile.is_open())
 	{
@@ -474,7 +472,7 @@ int main(int argc, char *argv[])
 				std::size_t fileEnd = line.find("\"", fileStart);
 
 				std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
-				groupStack.top()->models.push_back(fileStr);
+				groupStack.top()->models.push_back("../Output/" + fileStr);
 			}
 		}
 	}
