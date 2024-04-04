@@ -120,11 +120,11 @@ void drawGroup(const Group& group) {
     glPushMatrix();
 
     // Apply transformations
-    if (group.hasTranslate) {
-        glTranslatef(group.translate.x, group.translate.y, group.translate.z);
-    }
     if (group.hasRotate) {
         glRotatef(group.rotate.angle, group.rotate.x, group.rotate.y, group.rotate.z);
+    }
+    if (group.hasTranslate) {
+        glTranslatef(group.translate.x, group.translate.y, group.translate.z);
     }
     if (group.hasScale) {
         glScalef(group.scale.x, group.scale.y, group.scale.z);
@@ -304,7 +304,7 @@ void processMouseMotion(int xx, int yy) {
 
     if (tracking == 1) {
         // Adjust angles based on movement
-        alfa += deltaX * 0.1; // Adjust rotation speed if necessary
+        alfa += deltaX * 0.001; // Adjust rotation speed if necessary
         beta += deltaY * 0.1;
 
         // Clamp beta to prevent flipping
@@ -482,6 +482,40 @@ int main(int argc, char *argv[])
 			std::size_t xPos = line.find("x=");
 			std::size_t yPos = line.find("y=");
 			std::size_t zPos = line.find("z=");
+
+
+
+			if (anglePos == std::string::npos) {
+				anglePos = line.find("angle =");
+			} else if (anglePos == std::string::npos) {
+				anglePos = line.find("angle= ");
+			} else if (anglePos == std::string::npos) {
+				anglePos = line.find("angle = ");
+			}
+			
+			if (xPos == std::string::npos) {
+				xPos = line.find("x =");
+			} else if (xPos == std::string::npos) {
+				xPos = line.find("x= ");
+			} else if (xPos == std::string::npos) {
+				xPos = line.find("x = ");
+			}
+
+			if (yPos == std::string::npos) {
+				yPos = line.find("y =");
+			} else if (yPos == std::string::npos) {
+				yPos = line.find("y= ");
+			} else if (yPos == std::string::npos) {
+				yPos = line.find("y = ");
+			}
+
+			if (zPos == std::string::npos) {
+				zPos = line.find("z =");
+			} else if (zPos == std::string::npos) {
+				zPos = line.find("z= ");
+			} else if (zPos == std::string::npos) {
+				zPos = line.find("z = ");
+			}
 
 			if (anglePos != std::string::npos && xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
 				std::size_t angleStart = line.find("\"", anglePos) + 1;

@@ -5,3 +5,13 @@ Phase1/Generator/plane.o
 Phase1/Generator/sphere.o
 Phase1/Generator/cone.o
 Phase1/Engine/build/*
+Phase1/Output/*
+Phase2/Generator/generator
+Phase2/Generator/main.o
+Phase2/Generator/box.o
+Phase2/Generator/plane.o
+Phase2/Generator/sphere.o
+Phase2/Generator/cone.o
+Phase2/Engine/build/*
+.vscode/settings.json
+Phase2/Output/*

@@ -1,36 +1,78 @@
-<!-- TestFile2 -->
-
-<world> 
+<world>
     <window width="512" height="512" />
     <camera> 
-	    <position x="5" y="6" z="15" />
+	    <position x="3" y="10" z="4" />
 	    <lookAt x="0" y="0" z="0" />
 	    <up x="0" y="1" z="0" /> <!-- optional, use these values as default-->
         <projection fov="60" near="1" far="1000" /> <!-- optional, use these values as default-->
     </camera>
 
-    <group> 
+    <group>
         <transform> 
-		    <translate x="0" y="1" z="0" />
+            <translate x="0" y="1" z="0" />
         </transform>
-        <models> 
-            <model file="box.3d" /> <!-- generator box 2 3 box_2_3.3d -->
-        </models>
-			<group> 
-				<transform> 
-					<translate x="0" y="1" z="0" />
-				</transform>
-				<models> 
-					<model file="cone.3d" /> <!-- generator cone 1 2 4 3 cone_1_2_4_3.3d -->
-				</models>
-				<group> 
-					<transform> 
-						<translate x="0" y="3" z="0" />
-					</transform>
-					<models> 
-						<model file="sphere.3d" /> <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
-					</models>
-				</group>
-			</group>
-		</group>
+        <group> 
+            <transform> 
+                <rotate angle="45" x="0" y ="1" z = "0" />
+                <translate x="3.5" y="0" z="0" />
+            </transform>
+			<models> 
+				<model file="box_2_3.3d" /> <!-- generator box 2 3 box_2_3.3d -->
+			</models>
+        </group>
+        <group> 
+            <transform> 
+                <rotate angle="90" x="0" y ="1" z = "0" />
+                <translate x="3.5" y="0" z="0" />
+            </transform>
+			<models> 
+				<model file="box_2_3.3d" /> <!-- generator box 2 3 box_2_3.3d -->
+			</models>
+        </group>
+        <group> 
+            <transform> 
+                <rotate angle="135" x="0" y ="1" z = "0" />
+                <translate x="3.5" y="0" z="0" />
+            </transform>
+			<models> 
+				<model file="box_2_3.3d" /> <!-- generator box 2 3 box_2_3.3d -->
+			</models>
+        </group>
+        <group> 
+            <transform> 
+                <rotate angle="180" x="0" y ="1" z = "0" />
+                <translate x="3.5" y="0" z="0" />
+            </transform>
+			<models> 
+				<model file="box_2_3.3d" /> <!-- generator box 2 3 box_2_3.3d -->
+			</models>
+        </group>
+        <group> 
+            <transform> 
+                <rotate angle="225" x="0" y ="1" z = "0" />
+                <translate x="3.5" y="0" z="0" />
+            </transform>
+			<models> 
+				<model file="box_2_3.3d" /> <!-- generator box 2 3 box_2_3.3d -->
+			</models>
+        </group>
+        <group> 
+            <transform> 
+                <rotate angle="270" x="0" y ="1" z = "0" />
+                <translate x="3.5" y="0" z="0" />
+            </transform>
+			<models> 
+				<model file="box_2_3.3d" /> <!-- generator box 2 3 box_2_3.3d -->
+			</models>
+        </group>
+        <group> 
+            <transform> 
+                <rotate angle="315" x="0" y ="1" z = "0" />
+                <translate x="3.5" y="0" z="0" />
+            </transform>
+			<models> 
+				<model file="box_2_3.3d" /> <!-- generator box 2 3 box_2_3.3d -->
+			</models>
+        </group>
+	</group>
 </world>
