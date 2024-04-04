@@ -4,6 +4,11 @@
 #include <fstream>
 #include <vector>
 
+struct Point
+{
+	float x, y, z;
+};
+
 void generatePlane(const std::string &fileName, float length, int divisions)
 {
 
@@ -20,8 +25,7 @@ void generatePlane(const std::string &fileName, float length, int divisions)
 	float halfLength = length / 2.0f;
 	float divisionSize = length / divisions;
 	int verticesPerLine = divisions + 1;
-	float **geral = new float *[(divisions + 1) * (divisions + 1)];
-	int count = 0;
+	std::vector<Point> points;
 
 	// Vertices of the plane
 	for (int i = 0; i <= divisions; ++i)
@@ -30,12 +34,11 @@ void generatePlane(const std::string &fileName, float length, int divisions)
 		{
 			float x = -halfLength + j * divisionSize;
 			float z = -halfLength + i * divisionSize;
-			float *ponto = new float[3];
-			ponto[0] = x;
-			ponto[1] = 0;
-			ponto[2] = z;
-			geral[count] = ponto;
-			count++;
+			Point ponto;
+			ponto.x = x;
+			ponto.y = 0;
+			ponto.z = z;
+			points.push_back(ponto);
 		}
 	}
 
@@ -49,8 +52,9 @@ void generatePlane(const std::string &fileName, float length, int divisions)
 			int bottomLeft = (i + 1) * verticesPerLine + j;
 			int bottomRight = bottomLeft + 1;
 
-			outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
-			outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << "\n";
+			outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+			outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
+
 		}
 	}
 

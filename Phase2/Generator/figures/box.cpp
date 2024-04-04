@@ -5,10 +5,17 @@
 #include <string>
 #include <vector>
 
+struct Point
+{
+	float x, y, z;
+};
+
+
 void generateFace(std::ofstream &outFile, int divisions, float halfDimension, const std::string &axis, float normalDirection)
 {
 	float step = halfDimension * 2 / divisions;
-	float **geral = new float *[(divisions + 1) * (divisions + 1)];
+	std::vector<Point> points((divisions + 1) * (divisions + 1));
+
 
 	// Generate all points of the face
 	for (int i = 0; i <= divisions; ++i)
@@ -20,27 +27,27 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
 			float z = normalDirection * halfDimension;
 			
 
-			float *ponto = new float[3];
+			Point ponto;
 			if (axis == "xy")
 			{
-				ponto[0] = x;
-				ponto[1] = y;
-				ponto[2] = z;
+				ponto.x = x;
+				ponto.y = y;
+				ponto.z = z;
 			}
 			else if (axis == "xz")
 			{
-				ponto[0] = x;
-				ponto[1] = z;
-				ponto[2] = y;
+				ponto.x = x;
+				ponto.y = z;
+				ponto.z = y;
 			}
 			else if (axis == "yz")
 			{
-				ponto[0] = z;
-				ponto[1] = x;
-				ponto[2] = y;
+				ponto.x = z;
+				ponto.y = x;
+				ponto.z = y;
 			}
 
-			geral[i * (divisions + 1) + j] = ponto;
+			points[i * (divisions + 1) + j] = ponto;
 		}
 	}
 
@@ -57,35 +64,35 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
 			if (axis == "xy"){
 				if (normalDirection == 1) 
 				{
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
 				}
 				else
 				{
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << "\n";
 				}
 			}else if (axis == "xz"){
 				if (normalDirection == 1)
 				{
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << "\n";
 				}
 				else 
 				{
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
 				}
 			}else if (axis == "yz"){
 				if (normalDirection == 1) 
 				{
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
 				}
 				else
 				{
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
-					outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+					outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << "\n";
 				}
 			}
 

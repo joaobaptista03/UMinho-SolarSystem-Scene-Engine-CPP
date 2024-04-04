@@ -6,13 +6,19 @@
 #include <string>
 #include <vector>
 
+struct  Point
+{
+	float x, y, z;
+};
+
+
 void generateSphere(const std::string &fileName, float radius, int slices, int stacks)
 {
 
 	std::string path = "../Output/" + fileName;
 	std::ofstream outFile;
 	outFile.open(path);
-	float** geral = new float*[slices * stacks * 2];
+	std::vector<Point> points ((stacks + 1) * (slices + 1));
 
 	if (!outFile.is_open())
 	{
@@ -29,14 +35,14 @@ void generateSphere(const std::string &fileName, float radius, int slices, int s
 
 		for (int slice = 0; slice <= slices; ++slice)
 		{
-			float *ponto = new float[3];
+			Point ponto;
 			float theta = (float)slice / slices * 2 * M_PI;
 			float x = r * sin(theta);					
 			float z = r * cos(theta);
-			ponto[0] = x;
-			ponto[1] = y;
-			ponto[2] = z;
-			geral[stack * (slices + 1) + slice] = ponto;
+			ponto.x = x;
+			ponto.y = y;
+			ponto.z = z;
+			points[stack * (slices + 1) + slice] = ponto;
 		}
 	}
 
@@ -50,8 +56,8 @@ void generateSphere(const std::string &fileName, float radius, int slices, int s
 			int bottomLeft = (stack + 1) * (slices + 1) + slice;
 			int bottomRight = bottomLeft + 1;
 
-			outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomLeft][0] << "," << geral[bottomLeft][1] << "," << geral[bottomLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << "\n";
-			outFile << geral[topLeft][0] << "," << geral[topLeft][1] << "," << geral[topLeft][2] << " " << geral[bottomRight][0] << "," << geral[bottomRight][1] << "," << geral[bottomRight][2] << " " << geral[topRight][0] << "," << geral[topRight][1] << "," << geral[topRight][2] << "\n";
+			outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+			outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n"; 
 		}
 	}
 
