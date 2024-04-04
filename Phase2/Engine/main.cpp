@@ -77,7 +77,7 @@ void endGroup() {
 
 void drawModel(std::string file) {
 	std::ifstream inputFile;
-	inputFile.open(file);
+	inputFile.open("../Output/" + file);
 
 	if (!inputFile.is_open())
 	{
