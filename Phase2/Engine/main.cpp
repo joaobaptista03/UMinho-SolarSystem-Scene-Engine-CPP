@@ -19,6 +19,7 @@ int cameraX = 0, cameraY = 0, cameraZ = 0;
 int lookAtX = 0, lookAtY = 0, lookAtZ = 0;
 int upX = 0, upY = 0, upZ = 0;
 int fov = 0, near = 0, far = 0;
+int startX, startY, tracking = 0;
 
 float alfa = 0.0f, beta = 0.0f, radius = 5.0f;
 
@@ -264,6 +265,74 @@ void processSpecialKeys(int key, int xx, int yy) {
 	glutPostRedisplay();
 }
 
+
+void processMouseButtons(int button, int state, int xx, int yy) {
+	
+	if (state == GLUT_DOWN)  {
+		startX = xx;
+		startY = yy;
+		if (button == GLUT_LEFT_BUTTON)
+			tracking = 1;
+		else if (button == GLUT_RIGHT_BUTTON)
+			tracking = 2;
+		else
+			tracking = 0;
+	}
+	else if (state == GLUT_UP) {
+		if (tracking == 1) {
+			alfa += (xx - startX);
+			beta += (yy - startY);
+		}
+		else if (tracking == 2) {
+			
+			radius -= yy - startY;
+			if (radius < 3)
+				radius = 3.0;
+		}
+		tracking = 0;
+	}
+}
+
+
+void processMouseMotion(int xx, int yy) {
+
+	int deltaX, deltaY;
+	int alphaAux, betaAux;
+	int rAux;
+
+	if (!tracking)
+		return;
+
+	deltaX = xx - startX;
+	deltaY = yy - startY;
+
+	if (tracking == 1) {
+
+
+		alphaAux = alfa + deltaX;
+		betaAux = beta + deltaY;
+
+		if (betaAux > 85.0)
+			betaAux = 85.0;
+		else if (betaAux < -85.0)
+			betaAux = -85.0;
+
+		rAux = radius;
+	}
+	else if (tracking == 2) {
+
+		alphaAux = alfa;
+		betaAux = beta;
+		rAux = radius - deltaY;
+		if (rAux < 3)
+			rAux = 3;
+	}
+	cameraX = rAux * sin(alphaAux * 3.14 / 180.0) * cos(betaAux * 3.14 / 180.0);
+	cameraZ = rAux * cos(alphaAux * 3.14 / 180.0) * cos(betaAux * 3.14 / 180.0);
+	cameraY = rAux * 							     sin(betaAux * 3.14 / 180.0);
+}
+
+
 int main(int argc, char *argv[])
 {
 	if (argc != 2)
@@ -486,9 +555,14 @@ int main(int argc, char *argv[])
 	// Required callback registry 
 		glutDisplayFunc(renderScene);
 		glutReshapeFunc(changeSize);
-		
+
+	
 	// Callback registration for keyboard processing
 		glutKeyboardFunc(processKeys);
+		glutMouseFunc(processMouseButtons);
+		glutMotionFunc(processMouseMotion);
+		
+	// Callback registration for keyboard processing
 		glutSpecialFunc(processSpecialKeys);
 
 	//  OpenGL settings
