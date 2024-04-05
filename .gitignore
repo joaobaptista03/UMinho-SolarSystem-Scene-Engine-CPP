@@ -14,4 +14,3 @@ Phase2/Generator/sphere.o
 Phase2/Generator/cone.o
 Phase2/Engine/build/*
 .vscode/settings.json
-Phase2/Output/*
