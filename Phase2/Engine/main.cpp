@@ -116,10 +116,9 @@ void drawModel(std::string file) {
 
 
 void drawGroup(const Group& group) {
-    // Push the current matrix to preserve the GL state
+    
     glPushMatrix();
 
-    // Apply transformations
     if (group.hasRotate) {
         glRotatef(group.rotate.angle, group.rotate.x, group.rotate.y, group.rotate.z);
     }
@@ -130,17 +129,16 @@ void drawGroup(const Group& group) {
         glScalef(group.scale.x, group.scale.y, group.scale.z);
     }
 
-    // Draw each model in this group
+
     for (const std::string& modelFile : group.models) {
-        drawModel(modelFile); // Assuming drawModel takes a file path and draws the model
+        drawModel(modelFile); 
     }
 
-    // Recursively draw subgroups with their transformations
+    
     for (const Group& subgroup : group.subgroups) {
         drawGroup(subgroup);
     }
 
-    // Pop the matrix after drawing this group and its children to revert to the previous state
     glPopMatrix();
 }
 
@@ -299,29 +297,28 @@ void processMouseMotion(int xx, int yy) {
 
     if (!tracking) return;
 
-    deltaX = xx - startX; // How much has the mouse moved?
+    deltaX = xx - startX; 
     deltaY = yy - startY;
 
     if (tracking == 1) {
-        // Adjust angles based on movement
-        alfa += deltaX * 0.001; // Adjust rotation speed if necessary
+        
+        alfa += deltaX * 0.001; 
         beta += deltaY * 0.1;
 
-        // Clamp beta to prevent flipping
         if (beta > 85.0) beta = 85.0;
         else if (beta < -85.0) beta = -85.0;
+
     } else if (tracking == 2) {
-        // Zoom in/out
-        radius -= deltaY * 0.1; // Adjust zoom speed if necessary
+        radius -= deltaY * 0.1; 
         if (radius < 3) radius = 3;
     }
 
-    // Update camera position based on new angles and radius
+
     cameraX = radius * cos(beta * M_PI / 180.0) * sin(alfa * M_PI / 180.0);
     cameraY = radius * sin(beta * M_PI / 180.0);
     cameraZ = radius * cos(beta * M_PI / 180.0) * cos(alfa * M_PI / 180.0);
 
-    glutPostRedisplay(); // Mark the current window as needing to be redisplayed
+    glutPostRedisplay(); 
 }
 
 
