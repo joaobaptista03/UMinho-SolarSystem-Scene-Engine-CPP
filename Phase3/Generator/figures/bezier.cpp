@@ -52,10 +52,11 @@ void writeBezierPatch(const std::string& filename, const std::vector<std::vector
 
     for (const auto& patch : patches) {
         for (int i = 0; i < tessellation; ++i) {
+            float u = i / static_cast<float>(tessellation);
+            float u_next = (i + 1) / static_cast<float>(tessellation);
+
             for (int j = 0; j < tessellation; ++j) {
-                float u = i / static_cast<float>(tessellation);
                 float v = j / static_cast<float>(tessellation);
-                float u_next = (i + 1) / static_cast<float>(tessellation);
                 float v_next = (j + 1) / static_cast<float>(tessellation);
 
                 std::vector<Point> patchPoints(16);
@@ -68,13 +69,15 @@ void writeBezierPatch(const std::string& filename, const std::vector<std::vector
                 Point p3 = bezierPatchPoint(patchPoints, 3, u_next, v);
                 Point p4 = bezierPatchPoint(patchPoints, 3, u_next, v_next);
 
-                outFile << p1.x << " " << p1.y << " " << p1.z << "\n";
-                outFile << p2.x << " " << p2.y << " " << p2.z << "\n";
-                outFile << p3.x << " " << p3.y << " " << p3.z << "\n";
+                // First triangle
+                outFile << p1.x << "," << p1.y << "," << p1.z << " ";
+                outFile << p2.x << "," << p2.y << "," << p2.z << " ";
+                outFile << p3.x << "," << p3.y << "," << p3.z << "\n";
 
-                outFile << p2.x << " " << p2.y << " " << p2.z << "\n";
-                outFile << p4.x << " " << p4.y << " " << p4.z << "\n";
-                outFile << p3.x << " " << p3.y << " " << p3.z << "\n";
+                // Second triangle
+                outFile << p2.x << "," << p2.y << "," << p2.z << " ";
+                outFile << p4.x << "," << p4.y << "," << p4.z << " ";
+                outFile << p3.x << "," << p3.y << "," << p3.z << "\n";
             }
         }
     }
@@ -99,9 +102,18 @@ void bezier(char *controlPointsFile, int tessellationLevel, char *outputFileName
     for (int i = 0; i < numPatches; ++i) {
         std::string line;
         std::getline(inFile, line);
+
+        std::replace(line.begin(), line.end(), ',', ' ');
+
         std::istringstream iss(line);
-        for (int j = 0; j < 16; ++j) {
-            iss >> patches[i][j];
+        std::vector<int> patchIndices(std::istream_iterator<int>(iss), {});
+
+        if (patchIndices.size() == 16) {
+            patches[i] = patchIndices;
+        } else {
+            std::copy(patchIndices.begin(), patchIndices.end(), std::ostream_iterator<int>(std::cout, " "));
+            std::cout << std::endl;
+            return;
         }
     }
 
