@@ -9,6 +9,7 @@
 #include <regex>
 #include <stack>
 #include <math.h>
+#include <algorithm>
 
 #define _USE_MATH_DEFINES
 
@@ -29,6 +30,47 @@ std::string cleanXML(const std::string& xmlString) {
 
 struct Point {
 	float x = 0, y = 0, z = 0;
+
+	Point operator+(const Point& other) const {
+		return {x + other.x, y + other.y, z + other.z};
+	}
+
+	Point operator-(const Point& other) const {
+		return {x - other.x, y - other.y, z - other.z};
+	}
+
+	Point operator*(float scalar) const {
+		return {x * scalar, y * scalar, z * scalar};
+	}
+
+	Point operator/(float scalar) const {
+		return {x / scalar, y / scalar, z / scalar};
+	}
+
+    float dot(const Point& other) const {
+        return x * other.x + y * other.y + z * other.z;
+    }
+
+    Point cross(const Point& other) const {
+        return {
+            y * other.z - z * other.y,
+            z * other.x - x * other.z,
+            x * other.y - y * other.x
+        };
+    }
+
+    Point() : x(0), y(0), z(0) {}
+    Point(float xVal, float yVal, float zVal) : x(xVal), y(yVal), z(zVal) {}
+
+    Point normalize() const {
+        float len = length();
+        if (len == 0) return {0, 0, 0};
+        return {x / len, y / len, z / len};
+    }
+
+    float length() const {
+        return sqrt(x * x + y * y + z * z);
+    }
 };
 
 struct Translate {
@@ -67,6 +109,78 @@ struct Model {
 std::vector<Group> sceneGraph;
 std::stack<Group*> groupStack;
 std::map<std::string, Model> modelCache;
+
+Point catmullRomTangent(float t, const Point& p0, const Point& p1, const Point& p2, const Point& p3) {
+    float t2 = t * t;
+    Point tangent = {
+        -0.5 * p0.x + 0.5 * p2.x + t * (-p0.x + p1.x) + t2 * (1.5 * p0.x - 2.5 * p1.x + 2 * p2.x - 0.5 * p3.x),
+        -0.5 * p0.y + 0.5 * p2.y + t * (-p0.y + p1.y) + t2 * (1.5 * p0.y - 2.5 * p1.y + 2 * p2.y - 0.5 * p3.y),
+        -0.5 * p0.z + 0.5 * p2.z + t * (-p0.z + p1.z) + t2 * (1.5 * p0.z - 2.5 * p1.z + 2 * p2.z - 0.5 * p3.z)
+    };
+
+    float magnitude = sqrt(tangent.x * tangent.x + tangent.y * tangent.y + tangent.z * tangent.z);
+    tangent.x /= magnitude;
+    tangent.y /= magnitude;
+    tangent.z /= magnitude;
+
+    return tangent;
+}
+
+Point catmullRomPoint(float t, const Point& p0, const Point& p1, const Point& p2, const Point& p3) {
+    float t2 = t * t;
+    float t3 = t2 * t;
+    float b1 = -0.5 * t3 + t2 - 0.5 * t;
+    float b2 = 1.5 * t3 - 2.5 * t2 + 1.0;
+    float b3 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
+    float b4 = 0.5 * t3 - 0.5 * t2;
+
+    return {
+        p0.x * b1 + p1.x * b2 + p2.x * b3 + p3.x * b4,
+        p0.y * b1 + p1.y * b2 + p2.y * b3 + p3.y * b4,
+        p0.z * b1 + p1.z * b2 + p2.z * b3 + p3.z * b4
+    };
+}
+
+void drawCatmullRomSpline(const std::vector<Point>& controlPoints) {
+    glColor3f(1.0, 0.0, 0.0);
+    glBegin(GL_LINE_STRIP);
+
+    if (controlPoints.size() < 4) return;
+
+    for (int i = 0; i < controlPoints.size() - 3; i++) {
+        for (float t = 0; t <= 1.0f; t += 0.02f) { // increment t by 0.02 to get smooth curve
+            Point pos = catmullRomPoint(t, controlPoints[i], controlPoints[i + 1], controlPoints[i + 2], controlPoints[i + 3]);
+            glVertex3f(pos.x, pos.y, pos.z);
+        }
+    }
+
+	glColor3f(1.0, 1.0, 1.0);
+
+    glEnd();
+}
+
+void animateTranslation(const Translate& trans, float currentTime) {
+    if (trans.path.size() < 4) return;
+    drawCatmullRomSpline(trans.path);
+    float segmentTime = trans.time / (trans.path.size() - 3);
+    int segmentIndex = std::min(int(currentTime / segmentTime), int(trans.path.size() - 4));
+    float localT = std::max(0.0f, std::min((currentTime - segmentTime * segmentIndex) / segmentTime, 1.0f));
+    
+    Point pos = catmullRomPoint(localT, trans.path[segmentIndex], trans.path[segmentIndex+1], trans.path[segmentIndex+2], trans.path[segmentIndex+3]);
+
+    Point tan = catmullRomTangent(localT, trans.path[segmentIndex], trans.path[segmentIndex+1], trans.path[segmentIndex+2], trans.path[segmentIndex+3]);
+    tan = tan.normalize();
+
+    Point forward(0, 0, 1);
+
+    Point axis = forward.cross(tan).normalize();
+
+    float angle = acos(forward.dot(tan)) * 180.0f / M_PI;
+
+    glTranslatef(pos.x, pos.y, pos.z);
+
+    if (trans.align && axis.length() != 0) glRotatef(angle, axis.x, axis.y, axis.z);
+}
 
 GLuint loadModelToVBO(const std::vector<float>& vertices) {
     GLuint vboId;
@@ -120,23 +234,27 @@ void drawModel(const std::string& file) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void drawGroup(const Group& group) {
+void drawGroup(const Group& group, float currentTime) {
     glPushMatrix();
 
     if (group.hasRotate) {
-		// TODO
-		glRotatef(group.rotate.angle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
+        if (group.rotate.hasTime) {
+            float angle = (currentTime / group.rotate.time) * 360.0f;
+            glRotatef(angle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
+        } else {
+            glRotatef(group.rotate.angle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
+        }
 	}
 
     if (group.hasTranslate) {
-		// TODO
+		animateTranslation(group.translate, currentTime);
 	}
 
     if (group.hasScale) glScalef(group.scale.point.x, group.scale.point.y, group.scale.point.z);
 
     for (const std::string& modelFile : group.models) drawModel(modelFile);
 
-    for (const Group& subgroup : group.subgroups) drawGroup(subgroup);
+    for (const Group& subgroup : group.subgroups) drawGroup(subgroup, currentTime);
 
     glPopMatrix();
 }
@@ -167,25 +285,27 @@ void renderScene() {
 	glBegin(GL_LINES);
 	
 		glColor3f(1.0f, 0.0f, 0.0f);
-		glVertex3f(-5.0f, 0.0f, 0.0f);
+		glVertex3f(-1000.0f, 0.0f, 0.0f);
 		glColor3f(1.0f, 1.0f, 0.0f);
-		glVertex3f(5.0f, 0.0f, 0.0f);
+		glVertex3f(1000.0f, 0.0f, 0.0f);
 		
 		glColor3f(0.0f, 1.0f, 0.0f);
-		glVertex3f(0.0f, -5.0f, 0.0f);
+		glVertex3f(0.0f, -1000.0f, 0.0f);
 		glColor3f(0.0f, 1.0f, 1.0f);
-		glVertex3f(0.0f, 5.0f, 0.0f);
+		glVertex3f(0.0f, 1000.0f, 0.0f);
 		
 		glColor3f(0.0f, 0.0f, 1.0f);
-		glVertex3f(0.0f, 0.0f, -5.0f);
+		glVertex3f(0.0f, 0.0f, -1000.0f);
 		glColor3f(1.0f, 0.0f, 1.0f);
-		glVertex3f(0.0f, 0.0f, 5.0f);
+		glVertex3f(0.0f, 0.0f, 1000.0f);
 	glEnd();
 
 	glColor3f(1.0f, 1.0f, 1.0f);
 
+	float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+
 	for (const Group& group : sceneGraph) {
-		drawGroup(group);
+		drawGroup(group, currentTime);
 	}
 	
 	glutSwapBuffers();
@@ -646,6 +766,8 @@ int main(int argc, char *argv[]) {
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
+
+	glutIdleFunc(renderScene);
 
 	glutMainLoop();
 
