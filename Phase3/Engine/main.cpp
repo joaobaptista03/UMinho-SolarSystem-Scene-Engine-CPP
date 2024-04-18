@@ -66,8 +66,8 @@ struct Group{
 	Group *parent;
 };
 
-std::vector<Group> sceneGraph; // The root of the scene graph
-std::stack<Group*> groupStack; // For keeping track of the current group in the hierarchy
+std::vector<Group> sceneGraph;
+std::stack<Group*> groupStack;
 
 void drawModel(std::string file) {
 	std::ifstream inputFile;
@@ -111,31 +111,20 @@ void drawModel(std::string file) {
 
 
 void drawGroup(const Group& group) {
-    // Push the current matrix to preserve the GL state
     glPushMatrix();
 
-    // Apply transformations
-    if (group.hasRotate) {
-        glRotatef(group.rotate.angle, group.rotate.x, group.rotate.y, group.rotate.z);
-    }
-    if (group.hasTranslate) {
-        glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
-    }
-    if (group.hasScale) {
-        glScalef(group.scale.x, group.scale.y, group.scale.z);
-    }
+    if (group.hasRotate) glRotatef(group.rotate.angle, group.rotate.x, group.rotate.y, group.rotate.z);
 
-    // Draw each model in this group
-    for (const std::string& modelFile : group.models) {
-        drawModel(modelFile); // Assuming drawModel takes a file path and draws the model
-    }
+    if (group.hasTranslate) glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
 
-    // Recursively draw subgroups with their transformations
+    if (group.hasScale) glScalef(group.scale.x, group.scale.y, group.scale.z);
+
+    for (const std::string& modelFile : group.models) drawModel(modelFile);
+
     for (const Group& subgroup : group.subgroups) {
         drawGroup(subgroup);
     }
 
-    // Pop the matrix after drawing this group and its children to revert to the previous state
     glPopMatrix();
 }
 
@@ -164,17 +153,17 @@ void renderScene() {
 			  upX, upY, upZ);
 
 	glBegin(GL_LINES);
-		// X axis in red
+	
 		glColor3f(1.0f, 0.0f, 0.0f);
 		glVertex3f(-5.0f, 0.0f, 0.0f);
 		glColor3f(1.0f, 1.0f, 0.0f);
 		glVertex3f(5.0f, 0.0f, 0.0f);
-		// Y Axis in green
+		
 		glColor3f(0.0f, 1.0f, 0.0f);
 		glVertex3f(0.0f, -5.0f, 0.0f);
 		glColor3f(0.0f, 1.0f, 1.0f);
 		glVertex3f(0.0f, 5.0f, 0.0f);
-		// Z Axis in blue
+		
 		glColor3f(0.0f, 0.0f, 1.0f);
 		glVertex3f(0.0f, 0.0f, -5.0f);
 		glColor3f(1.0f, 0.0f, 1.0f);
@@ -189,7 +178,6 @@ void renderScene() {
 }
 
 void processKeys(unsigned char c, int xx, int yy) {
-
 	switch (c) {
 		case 'd':
 			alfa -= 0.1; break;
@@ -271,6 +259,7 @@ void processMouseButtons(int button, int state, int xx, int yy) {
 		else
 			tracking = 0;
 	}
+
 	else if (state == GLUT_UP) {
 		if (tracking == 1) {
 			alfa += (xx - startX);
@@ -291,43 +280,316 @@ void processMouseMotion(int xx, int yy) {
 
     if (!tracking) return;
 
-    deltaX = xx - startX; // How much has the mouse moved?
+    deltaX = xx - startX;
     deltaY = yy - startY;
 
     if (tracking == 1) {
-        // Adjust angles based on movement
-        alfa += deltaX * 0.001; // Adjust rotation speed if necessary
+        alfa += deltaX * 0.001;
         beta += deltaY * 0.1;
 
-        // Clamp beta to prevent flipping
         if (beta > 85.0) beta = 85.0;
         else if (beta < -85.0) beta = -85.0;
     } else if (tracking == 2) {
-        // Zoom in/out
-        radius -= deltaY * 0.1; // Adjust zoom speed if necessary
+        radius -= deltaY * 0.1;
         if (radius < 3) radius = 3;
     }
 
-    // Update camera position based on new angles and radius
     cameraX = radius * cos(beta * M_PI / 180.0) * sin(alfa * M_PI / 180.0);
     cameraY = radius * sin(beta * M_PI / 180.0);
     cameraZ = radius * cos(beta * M_PI / 180.0) * cos(alfa * M_PI / 180.0);
 
-    glutPostRedisplay(); // Mark the current window as needing to be redisplayed
+    glutPostRedisplay();
 }
 
-// Helper function to trim spaces from both ends of a string
-std::string trim(const std::string& str) {
-    size_t first = str.find_first_not_of(' ');
-    if (std::string::npos == first) {
-        return str;
-    }
-    size_t last = str.find_last_not_of(' ');
-    return str.substr(first, (last - first + 1));
+void parseWindow(std::string line) {
+	std::size_t widthPos = line.find("width=");
+	std::size_t heightPos = line.find("height=");
+
+	if (widthPos != std::string::npos && heightPos != std::string::npos) {
+		std::size_t widthStart = line.find("\"", widthPos) + 1;
+		std::size_t widthEnd = line.find("\"", widthStart);
+		std::size_t heightStart = line.find("\"", heightPos) + 1;
+		std::size_t heightEnd = line.find("\"", heightStart);
+
+		std::string widthStr = line.substr(widthStart, widthEnd - widthStart);
+		std::string heightStr = line.substr(heightStart, heightEnd - heightStart);
+
+		windowWidth = std::stoi(widthStr);
+		windowHeight = std::stoi(heightStr);
+	}
 }
 
-int main(int argc, char *argv[])
-{
+void parsePosition(std::string line) {
+	std::size_t xPos = line.find("x=");
+	std::size_t yPos = line.find("y=");
+	std::size_t zPos = line.find("z=");
+
+	if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+		std::size_t xStart = line.find("\"", xPos) + 1;
+		std::size_t xEnd = line.find("\"", xStart);
+		std::size_t yStart = line.find("\"", yPos) + 1;
+		std::size_t yEnd = line.find("\"", yStart);
+		std::size_t zStart = line.find("\"", zPos) + 1;
+		std::size_t zEnd = line.find("\"", zStart);
+
+		std::string xStr = line.substr(xStart, xEnd - xStart);
+		std::string yStr = line.substr(yStart, yEnd - yStart);
+		std::string zStr = line.substr(zStart, zEnd - zStart);
+
+		cameraX = std::stoi(xStr);
+		cameraY = std::stoi(yStr);
+		cameraZ = std::stoi(zStr);
+	}
+}
+
+void parseLookAt(std::string line) {
+	std::size_t xPos = line.find("x=");
+	std::size_t yPos = line.find("y=");
+	std::size_t zPos = line.find("z=");
+
+	if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+		std::size_t xStart = line.find("\"", xPos) + 1;
+		std::size_t xEnd = line.find("\"", xStart);
+		std::size_t yStart = line.find("\"", yPos) + 1;
+		std::size_t yEnd = line.find("\"", yStart);
+		std::size_t zStart = line.find("\"", zPos) + 1;
+		std::size_t zEnd = line.find("\"", zStart);
+
+		std::string xStr = line.substr(xStart, xEnd - xStart);
+		std::string yStr = line.substr(yStart, yEnd - yStart);
+		std::string zStr = line.substr(zStart, zEnd - zStart);
+
+		lookAtX = std::stoi(xStr);
+		lookAtY = std::stoi(yStr);
+		lookAtZ = std::stoi(zStr);
+	}
+}
+
+void parseUp(std::string line) {
+	std::size_t xPos = line.find("x=");
+	std::size_t yPos = line.find("y=");
+	std::size_t zPos = line.find("z=");
+
+	if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+		std::size_t xStart = line.find("\"", xPos) + 1;
+		std::size_t xEnd = line.find("\"", xStart);
+		std::size_t yStart = line.find("\"", yPos) + 1;
+		std::size_t yEnd = line.find("\"", yStart);
+		std::size_t zStart = line.find("\"", zPos) + 1;
+		std::size_t zEnd = line.find("\"", zStart);
+
+		std::string xStr = line.substr(xStart, xEnd - xStart);
+		std::string yStr = line.substr(yStart, yEnd - yStart);
+		std::string zStr = line.substr(zStart, zEnd - zStart);
+
+		upX = std::stoi(xStr);
+		upY = std::stoi(yStr);
+		upZ = std::stoi(zStr);
+
+	}
+}
+
+void parseProjection(std::string line) {
+	std::size_t fovPos = line.find("fov=");
+	std::size_t nearPos = line.find("near=");
+	std::size_t farPos = line.find("far=");
+
+	if (fovPos != std::string::npos && nearPos != std::string::npos && farPos != std::string::npos) {
+		std::size_t fovStart = line.find("\"", fovPos) + 1;
+		std::size_t fovEnd = line.find("\"", fovStart);
+		std::size_t nearStart = line.find("\"", nearPos) + 1;
+		std::size_t nearEnd = line.find("\"", nearStart);
+		std::size_t farStart = line.find("\"", farPos) + 1;
+		std::size_t farEnd = line.find("\"", farStart);
+
+		std::string fovStr = line.substr(fovStart, fovEnd - fovStart);
+		std::string nearStr = line.substr(nearStart, nearEnd - nearStart);
+		std::string farStr = line.substr(farStart, farEnd - farStart);
+
+		fov = std::stoi(fovStr);
+		near = std::stoi(nearStr);
+		far = std::stoi(farStr);
+	}
+}
+
+void parseGroup(std::string line, bool open) {
+	if (open) {
+		if (groupStack.empty()) {
+			sceneGraph.emplace_back();
+			groupStack.push(&sceneGraph.back()); 
+		} else {
+			groupStack.top()->subgroups.emplace_back();
+			groupStack.push(&groupStack.top()->subgroups.back()); 
+		}	
+	} else {
+		if (!groupStack.empty()) {
+			groupStack.pop(); 
+		} else {
+			std::cerr << "Error: Group end tag without matching start tag.\n";
+		}
+	}
+}
+
+void parseTranslate(std::string line) {
+	Group* group = groupStack.top();
+
+	group->hasTranslate = true;
+	std::size_t xPos = line.find("x=");
+	std::size_t yPos = line.find("y=");
+	std::size_t zPos = line.find("z=");
+	std::size_t timePos = line.find("time=");
+	std::size_t alignPos = line.find("align=");
+
+	if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+		group->translate.hasPoint = true;
+
+		std::size_t xStart = line.find("\"", xPos) + 1;
+		std::size_t xEnd = line.find("\"", xStart);
+		std::size_t yStart = line.find("\"", yPos) + 1;
+		std::size_t yEnd = line.find("\"", yStart);
+		std::size_t zStart = line.find("\"", zPos) + 1;
+		std::size_t zEnd = line.find("\"", zStart);
+
+		std::string xStr = line.substr(xStart, xEnd - xStart);
+		std::string yStr = line.substr(yStart, yEnd - yStart);
+		std::string zStr = line.substr(zStart, zEnd - zStart);
+
+		group->translate.point.x = std::stof(xStr);
+		group->translate.point.y = std::stof(yStr);
+		group->translate.point.z = std::stof(zStr);
+	}
+
+	if (timePos != std::string::npos) {
+		group->translate.hasTime = true;
+
+		std::size_t timeStart = line.find("\"", timePos) + 1;
+		std::size_t timeEnd = line.find("\"", timeStart);
+
+		std::string timeStr = line.substr(timeStart, timeEnd - timeStart);
+		group->translate.time = std::stof(timeStr);
+	}
+
+	if (alignPos != std::string::npos) {
+		std::size_t alignStart = line.find("\"", alignPos) + 1;
+		std::size_t alignEnd = line.find("\"", alignStart);
+
+		std::string alignStr = line.substr(alignStart, alignEnd - alignStart);
+		std::cout << "Align: " << alignStr << std::endl;
+		group->translate.align = (alignStr == "true");
+	}
+}
+
+void parseRotate(std::string line) {
+	Group* group = groupStack.top();
+
+	group->hasRotate = true;
+	
+	std::size_t anglePos = line.find("angle=");
+	std::size_t xPos = line.find("x=");
+	std::size_t yPos = line.find("y=");
+	std::size_t zPos = line.find("z=");
+	std::size_t timePos = line.find("time=");
+
+	if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+		std::size_t xStart = line.find("\"", xPos) + 1;
+		std::size_t xEnd = line.find("\"", xStart);
+		std::size_t yStart = line.find("\"", yPos) + 1;
+		std::size_t yEnd = line.find("\"", yStart);
+		std::size_t zStart = line.find("\"", zPos) + 1;
+		std::size_t zEnd = line.find("\"", zStart);
+
+		std::string xStr = line.substr(xStart, xEnd - xStart);
+		std::string yStr = line.substr(yStart, yEnd - yStart);
+		std::string zStr = line.substr(zStart, zEnd - zStart);
+
+		group->rotate.x = std::stof(xStr);
+		group->rotate.y = std::stof(yStr);
+		group->rotate.z = std::stof(zStr);
+	}
+
+	if (anglePos != std::string::npos) {
+		std::size_t angleStart = line.find("\"", anglePos) + 1;
+		std::size_t angleEnd = line.find("\"", angleStart);
+
+		std::string angleStr = line.substr(angleStart, angleEnd - angleStart);
+		group->rotate.angle = std::stof(angleStr);
+	}
+
+	if (timePos != std::string::npos) {
+		std::size_t timeStart = line.find("\"", timePos) + 1;
+		std::size_t timeEnd = line.find("\"", timeStart);
+
+		std::string timeStr = line.substr(timeStart, timeEnd - timeStart);
+		group->rotate.hasTime = true;
+		group->rotate.time = std::stof(timeStr);
+	}
+}
+
+void parsePoint(std::string line) {
+	Group* group = groupStack.top();
+
+	Point point;
+	std::size_t xPos = line.find("x=");
+	std::size_t yPos = line.find("y=");
+	std::size_t zPos = line.find("z=");
+	if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+		std::size_t xStart = line.find("\"", xPos) + 1;
+		std::size_t xEnd = line.find("\"", xStart);
+		std::size_t yStart = line.find("\"", yPos) + 1;
+		std::size_t yEnd = line.find("\"", yStart);
+		std::size_t zStart = line.find("\"", zPos) + 1;
+		std::size_t zEnd = line.find("\"", zStart);
+
+		std::string xStr = line.substr(xStart, xEnd - xStart);
+		std::string yStr = line.substr(yStart, yEnd - yStart);
+		std::string zStr = line.substr(zStart, zEnd - zStart);
+
+		point.x = std::stof(xStr);
+		point.y = std::stof(yStr);
+		point.z = std::stof(zStr);
+		group->translate.path.push_back(point);
+	}
+}
+
+void parseScale(std::string line) {
+	Group *group = groupStack.top();
+
+	group->hasScale = true;
+	std::size_t xPos = line.find("x=");
+	std::size_t yPos = line.find("y=");
+	std::size_t zPos = line.find("z=");
+
+	if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+		std::size_t xStart = line.find("\"", xPos) + 1;
+		std::size_t xEnd = line.find("\"", xStart);
+		std::size_t yStart = line.find("\"", yPos) + 1;
+		std::size_t yEnd = line.find("\"", yStart);
+		std::size_t zStart = line.find("\"", zPos) + 1;
+		std::size_t zEnd = line.find("\"", zStart);
+
+		std::string xStr = line.substr(xStart, xEnd - xStart);
+		std::string yStr = line.substr(yStart, yEnd - yStart);
+		std::string zStr = line.substr(zStart, zEnd - zStart);
+
+		group->scale.x = std::stof(xStr);
+		group->scale.y = std::stof(yStr);
+		group->scale.z = std::stof(zStr);
+	}
+}
+
+void parseModel(std::string line) {
+	std::size_t filePos = line.find("file=");
+
+	if (filePos != std::string::npos) {
+		std::size_t fileStart = line.find("\"", filePos) + 1;
+		std::size_t fileEnd = line.find("\"", fileStart);
+
+		std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
+		groupStack.top()->models.push_back("../Output/" + fileStr);
+	}
+}
+
+int main(int argc, char *argv[]) {
 	if (argc != 2)
 	{
 		std::cerr << "Usage: " << argv[0] << " <xml file>" << std::endl;
@@ -347,307 +609,58 @@ int main(int argc, char *argv[])
 	while (std::getline(inputFile, line))
 	{
 		line = cleanXmlAttributes(line);
-		if (line.find("<window") != std::string::npos) {
-			std::size_t widthPos = line.find("width=");
-			std::size_t heightPos = line.find("height=");
 
-			if (widthPos != std::string::npos && heightPos != std::string::npos) {
-				std::size_t widthStart = line.find("\"", widthPos) + 1;
-				std::size_t widthEnd = line.find("\"", widthStart);
-				std::size_t heightStart = line.find("\"", heightPos) + 1;
-				std::size_t heightEnd = line.find("\"", heightStart);
+		if (line.find("<window") != std::string::npos) parseWindow(line);
 
-				std::string widthStr = line.substr(widthStart, widthEnd - widthStart);
-				std::string heightStr = line.substr(heightStart, heightEnd - heightStart);
+		else if (line.find("<position") != std::string::npos) parsePosition(line);
+		
+		else if (line.find("<lookAt") != std::string::npos) parseLookAt(line);
 
-				windowWidth = std::stoi(widthStr);
-				windowHeight = std::stoi(heightStr);
-			}
+		else if (line.find("<up") != std::string::npos) parseUp(line);
 
-		} else if (line.find("<position") != std::string::npos) {
-			std::size_t xPos = line.find("x=");
-			std::size_t yPos = line.find("y=");
-			std::size_t zPos = line.find("z=");
+		else if (line.find("<projection") != std::string::npos) parseProjection(line);
+		
+		else if (line.find("<group") != std::string::npos) parseGroup(line, true);
 
-			if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
-				std::size_t xStart = line.find("\"", xPos) + 1;
-				std::size_t xEnd = line.find("\"", xStart);
-				std::size_t yStart = line.find("\"", yPos) + 1;
-				std::size_t yEnd = line.find("\"", yStart);
-				std::size_t zStart = line.find("\"", zPos) + 1;
-				std::size_t zEnd = line.find("\"", zStart);
+		else if (line.find("</group") != std::string::npos) parseGroup(line, false);
 
-				std::string xStr = line.substr(xStart, xEnd - xStart);
-				std::string yStr = line.substr(yStart, yEnd - yStart);
-				std::string zStr = line.substr(zStart, zEnd - zStart);
+		else if (line.find("<translate") != std::string::npos) parseTranslate(line);
 
-				cameraX = std::stoi(xStr);
-				cameraY = std::stoi(yStr);
-				cameraZ = std::stoi(zStr);
-			}
+		else if (line.find("<rotate") != std::string::npos) parseRotate(line);
 
-		} else if (line.find("<lookAt") != std::string::npos) {
-			std::size_t xPos = line.find("x=");
-			std::size_t yPos = line.find("y=");
-			std::size_t zPos = line.find("z=");
+		else if (line.find("<point") != std::string::npos) parsePoint(line);
 
-			if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
-				std::size_t xStart = line.find("\"", xPos) + 1;
-				std::size_t xEnd = line.find("\"", xStart);
-				std::size_t yStart = line.find("\"", yPos) + 1;
-				std::size_t yEnd = line.find("\"", yStart);
-				std::size_t zStart = line.find("\"", zPos) + 1;
-				std::size_t zEnd = line.find("\"", zStart);
+		else if (line.find("<scale") != std::string::npos) parseScale(line);
 
-				std::string xStr = line.substr(xStart, xEnd - xStart);
-				std::string yStr = line.substr(yStart, yEnd - yStart);
-				std::string zStr = line.substr(zStart, zEnd - zStart);
-
-				lookAtX = std::stoi(xStr);
-				lookAtY = std::stoi(yStr);
-				lookAtZ = std::stoi(zStr);
-			}
-
-		} else if (line.find("<up") != std::string::npos) {
-			std::size_t xPos = line.find("x=");
-			std::size_t yPos = line.find("y=");
-			std::size_t zPos = line.find("z=");
-
-			if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
-				std::size_t xStart = line.find("\"", xPos) + 1;
-				std::size_t xEnd = line.find("\"", xStart);
-				std::size_t yStart = line.find("\"", yPos) + 1;
-				std::size_t yEnd = line.find("\"", yStart);
-				std::size_t zStart = line.find("\"", zPos) + 1;
-				std::size_t zEnd = line.find("\"", zStart);
-
-				std::string xStr = line.substr(xStart, xEnd - xStart);
-				std::string yStr = line.substr(yStart, yEnd - yStart);
-				std::string zStr = line.substr(zStart, zEnd - zStart);
-
-				upX = std::stoi(xStr);
-				upY = std::stoi(yStr);
-				upZ = std::stoi(zStr);
-
-			}
-		} else if (line.find("<projection") != std::string::npos) {
-				std::size_t fovPos = line.find("fov=");
-				std::size_t nearPos = line.find("near=");
-				std::size_t farPos = line.find("far=");
-
-				if (fovPos != std::string::npos && nearPos != std::string::npos && farPos != std::string::npos) {
-					std::size_t fovStart = line.find("\"", fovPos) + 1;
-					std::size_t fovEnd = line.find("\"", fovStart);
-					std::size_t nearStart = line.find("\"", nearPos) + 1;
-					std::size_t nearEnd = line.find("\"", nearStart);
-					std::size_t farStart = line.find("\"", farPos) + 1;
-					std::size_t farEnd = line.find("\"", farStart);
-
-					std::string fovStr = line.substr(fovStart, fovEnd - fovStart);
-					std::string nearStr = line.substr(nearStart, nearEnd - nearStart);
-					std::string farStr = line.substr(farStart, farEnd - farStart);
-
-					fov = std::stoi(fovStr);
-					near = std::stoi(nearStr);
-					far = std::stoi(farStr);
-				}
-		} else if (line.find("<group") != std::string::npos) {
-			if (groupStack.empty()) {
-				sceneGraph.emplace_back();
-				groupStack.push(&sceneGraph.back()); 
-			} else {
-				groupStack.top()->subgroups.emplace_back();
-				groupStack.push(&groupStack.top()->subgroups.back()); 
-			}
-
-		} else if (line.find("</group") != std::string::npos) {
-			if (!groupStack.empty()) {
-				groupStack.pop(); 
-			} else {
-				std::cerr << "Error: Group end tag without matching start tag.\n";
-			}
-
-		} else if (line.find("<translate") != std::string::npos) {
-			Group* group = groupStack.top();
-
-			group->hasTranslate = true;
-			std::size_t xPos = line.find("x=");
-			std::size_t yPos = line.find("y=");
-			std::size_t zPos = line.find("z=");
-			std::size_t timePos = line.find("time=");
-			std::size_t alignPos = line.find("align=");
-
-			if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
-				group->translate.hasPoint = true;
-
-				std::size_t xStart = line.find("\"", xPos) + 1;
-				std::size_t xEnd = line.find("\"", xStart);
-				std::size_t yStart = line.find("\"", yPos) + 1;
-				std::size_t yEnd = line.find("\"", yStart);
-				std::size_t zStart = line.find("\"", zPos) + 1;
-				std::size_t zEnd = line.find("\"", zStart);
-
-				std::string xStr = line.substr(xStart, xEnd - xStart);
-				std::string yStr = line.substr(yStart, yEnd - yStart);
-				std::string zStr = line.substr(zStart, zEnd - zStart);
-
-				group->translate.point.x = std::stof(xStr);
-				group->translate.point.y = std::stof(yStr);
-				group->translate.point.z = std::stof(zStr);
-			}
-
-			if (timePos != std::string::npos) {
-				group->translate.hasTime = true;
-
-				std::size_t timeStart = line.find("\"", timePos) + 1;
-				std::size_t timeEnd = line.find("\"", timeStart);
-
-				std::string timeStr = line.substr(timeStart, timeEnd - timeStart);
-				group->translate.time = std::stof(timeStr);
-			}
-
-			if (alignPos != std::string::npos) {
-				std::size_t alignStart = line.find("\"", alignPos) + 1;
-				std::size_t alignEnd = line.find("\"", alignStart);
-
-				std::string alignStr = line.substr(alignStart, alignEnd - alignStart);
-				std::cout << "Align: " << alignStr << std::endl;
-				group->translate.align = (alignStr == "true");
-			}
-
-		} else if (line.find("<rotate") != std::string::npos) {
-			Group* group = groupStack.top();
-
-			group->hasRotate = true;
-			
-			std::size_t anglePos = line.find("angle=");
-			std::size_t xPos = line.find("x=");
-			std::size_t yPos = line.find("y=");
-			std::size_t zPos = line.find("z=");
-			std::size_t timePos = line.find("time=");
-
-			if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
-				std::size_t xStart = line.find("\"", xPos) + 1;
-				std::size_t xEnd = line.find("\"", xStart);
-				std::size_t yStart = line.find("\"", yPos) + 1;
-				std::size_t yEnd = line.find("\"", yStart);
-				std::size_t zStart = line.find("\"", zPos) + 1;
-				std::size_t zEnd = line.find("\"", zStart);
-
-				std::string xStr = line.substr(xStart, xEnd - xStart);
-				std::string yStr = line.substr(yStart, yEnd - yStart);
-				std::string zStr = line.substr(zStart, zEnd - zStart);
-
-				group->rotate.x = std::stof(xStr);
-				group->rotate.y = std::stof(yStr);
-				group->rotate.z = std::stof(zStr);
-			}
-
-			if (anglePos != std::string::npos) {
-				std::size_t angleStart = line.find("\"", anglePos) + 1;
-				std::size_t angleEnd = line.find("\"", angleStart);
-
-				std::string angleStr = line.substr(angleStart, angleEnd - angleStart);
-				group->rotate.angle = std::stof(angleStr);
-			}
-
-			if (timePos != std::string::npos) {
-				std::size_t timeStart = line.find("\"", timePos) + 1;
-				std::size_t timeEnd = line.find("\"", timeStart);
-
-				std::string timeStr = line.substr(timeStart, timeEnd - timeStart);
-				group->rotate.hasTime = true;
-				group->rotate.time = std::stof(timeStr);
-			}
-
-		} else if (line.find("<point") != std::string::npos) {
-			Group* group = groupStack.top();
-
-			Point point;
-			std::size_t xPos = line.find("x=");
-			std::size_t yPos = line.find("y=");
-			std::size_t zPos = line.find("z=");
-			if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
-				std::size_t xStart = line.find("\"", xPos) + 1;
-				std::size_t xEnd = line.find("\"", xStart);
-				std::size_t yStart = line.find("\"", yPos) + 1;
-				std::size_t yEnd = line.find("\"", yStart);
-				std::size_t zStart = line.find("\"", zPos) + 1;
-				std::size_t zEnd = line.find("\"", zStart);
-
-				std::string xStr = line.substr(xStart, xEnd - xStart);
-				std::string yStr = line.substr(yStart, yEnd - yStart);
-				std::string zStr = line.substr(zStart, zEnd - zStart);
-
-				point.x = std::stof(xStr);
-				point.y = std::stof(yStr);
-				point.z = std::stof(zStr);
-				group->translate.path.push_back(point);
-			}
-
-		} else if (line.find("<scale") != std::string::npos) {
-			Group *group = groupStack.top();
-
-			group->hasScale = true;
-			std::size_t xPos = line.find("x=");
-			std::size_t yPos = line.find("y=");
-			std::size_t zPos = line.find("z=");
-
-			if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
-				std::size_t xStart = line.find("\"", xPos) + 1;
-				std::size_t xEnd = line.find("\"", xStart);
-				std::size_t yStart = line.find("\"", yPos) + 1;
-				std::size_t yEnd = line.find("\"", yStart);
-				std::size_t zStart = line.find("\"", zPos) + 1;
-				std::size_t zEnd = line.find("\"", zStart);
-
-				std::string xStr = line.substr(xStart, xEnd - xStart);
-				std::string yStr = line.substr(yStart, yEnd - yStart);
-				std::string zStr = line.substr(zStart, zEnd - zStart);
-
-				group->scale.x = std::stof(xStr);
-				group->scale.y = std::stof(yStr);
-				group->scale.z = std::stof(zStr);
-			}
-		} else if (line.find("<model") != std::string::npos) {
-			std::size_t filePos = line.find("file=");
-
-			if (filePos != std::string::npos) {
-				std::size_t fileStart = line.find("\"", filePos) + 1;
-				std::size_t fileEnd = line.find("\"", fileStart);
-
-				std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
-				groupStack.top()->models.push_back("../Output/" + fileStr);
-			}
-		}
+		else if (line.find("<model") != std::string::npos) parseModel(line);
 	}
 
 	// init GLUT and the window
-		glutInit(&argc, argv);
-		glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA);
-		glutInitWindowPosition(100,100);
-		glutInitWindowSize(windowWidth, windowHeight);
-		glutCreateWindow("CG@DI-UM");
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA);
+	glutInitWindowPosition(100,100);
+	glutInitWindowSize(windowWidth, windowHeight);
+	glutCreateWindow("CG@DI-UM");
 			
 	// Required callback registry 
-		glutDisplayFunc(renderScene);
-		glutReshapeFunc(changeSize);
+	glutDisplayFunc(renderScene);
+	glutReshapeFunc(changeSize);
 
 	
 	// Callback registration for keyboard processing
-		glutKeyboardFunc(processKeys);
-		glutMouseFunc(processMouseButtons);
-		glutMotionFunc(processMouseMotion);
+	glutKeyboardFunc(processKeys);
+	glutMouseFunc(processMouseButtons);
+	glutMotionFunc(processMouseMotion);
 		
 	// Callback registration for keyboard processing
-		glutSpecialFunc(processSpecialKeys);
+	glutSpecialFunc(processSpecialKeys);
 
-	//  OpenGL settings
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
+	// OpenGL settings
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 		
 	// enter GLUT's main cycle
-		glutMainLoop();
+	glutMainLoop();
 
 	inputFile.close();
 
