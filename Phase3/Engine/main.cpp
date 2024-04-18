@@ -24,7 +24,7 @@ int startX, startY, tracking = 0;
 
 float alfa = 0.0f, beta = 0.0f, radius = 5.0f;
 
-std::string cleanXmlAttributes(const std::string& xmlString) {
+std::string cleanXML(const std::string& xmlString) {
     std::regex re("\\s*=\\s*");
     std::string cleanedString = std::regex_replace(xmlString, re, "=");
     return cleanedString;
@@ -43,15 +43,13 @@ struct Translate {
     std::vector<Point> path;
 };
 
-struct Scale{
-	float x = 1;
-	float y = 1;
-	float z = 1;
+struct Scale {
+	Point point{1, 1, 1};
 };
 
 struct Rotate {
     float angle;
-    float x, y, z;
+	Point point;
     bool hasTime = false;
     float time;
 };
@@ -113,11 +111,11 @@ void drawModel(std::string file) {
 void drawGroup(const Group& group) {
     glPushMatrix();
 
-    if (group.hasRotate) glRotatef(group.rotate.angle, group.rotate.x, group.rotate.y, group.rotate.z);
+    if (group.hasRotate) glRotatef(group.rotate.angle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
 
     if (group.hasTranslate) glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
 
-    if (group.hasScale) glScalef(group.scale.x, group.scale.y, group.scale.z);
+    if (group.hasScale) glScalef(group.scale.point.x, group.scale.point.y, group.scale.point.z);
 
     for (const std::string& modelFile : group.models) drawModel(modelFile);
 
@@ -502,9 +500,9 @@ void parseRotate(std::string line) {
 		std::string yStr = line.substr(yStart, yEnd - yStart);
 		std::string zStr = line.substr(zStart, zEnd - zStart);
 
-		group->rotate.x = std::stof(xStr);
-		group->rotate.y = std::stof(yStr);
-		group->rotate.z = std::stof(zStr);
+		group->rotate.point.x = std::stof(xStr);
+		group->rotate.point.y = std::stof(yStr);
+		group->rotate.point.z = std::stof(zStr);
 	}
 
 	if (anglePos != std::string::npos) {
@@ -571,9 +569,9 @@ void parseScale(std::string line) {
 		std::string yStr = line.substr(yStart, yEnd - yStart);
 		std::string zStr = line.substr(zStart, zEnd - zStart);
 
-		group->scale.x = std::stof(xStr);
-		group->scale.y = std::stof(yStr);
-		group->scale.z = std::stof(zStr);
+		group->scale.point.x = std::stof(xStr);
+		group->scale.point.y = std::stof(yStr);
+		group->scale.point.z = std::stof(zStr);
 	}
 }
 
@@ -590,8 +588,7 @@ void parseModel(std::string line) {
 }
 
 int main(int argc, char *argv[]) {
-	if (argc != 2)
-	{
+	if (argc != 2) {
 		std::cerr << "Usage: " << argv[0] << " <xml file>" << std::endl;
 		return 1;
 	}
@@ -599,16 +596,14 @@ int main(int argc, char *argv[]) {
 	std::ifstream inputFile;
 	inputFile.open(argv[1]);
 
-	if (!inputFile.is_open())
-	{
+	if (!inputFile.is_open()) {
 		std::cerr << "Failed to open file: " << argv[1] << "\n";
 		return 2;
 	}
 
 	std::string line;
-	while (std::getline(inputFile, line))
-	{
-		line = cleanXmlAttributes(line);
+	while (std::getline(inputFile, line)) {
+		line = cleanXML(line);
 
 		if (line.find("<window") != std::string::npos) parseWindow(line);
 
@@ -635,31 +630,24 @@ int main(int argc, char *argv[]) {
 		else if (line.find("<model") != std::string::npos) parseModel(line);
 	}
 
-	// init GLUT and the window
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA);
 	glutInitWindowPosition(100,100);
 	glutInitWindowSize(windowWidth, windowHeight);
 	glutCreateWindow("CG@DI-UM");
-			
-	// Required callback registry 
+
 	glutDisplayFunc(renderScene);
 	glutReshapeFunc(changeSize);
 
-	
-	// Callback registration for keyboard processing
 	glutKeyboardFunc(processKeys);
 	glutMouseFunc(processMouseButtons);
 	glutMotionFunc(processMouseMotion);
-		
-	// Callback registration for keyboard processing
+
 	glutSpecialFunc(processSpecialKeys);
 
-	// OpenGL settings
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-		
-	// enter GLUT's main cycle
+
 	glutMainLoop();
 
 	inputFile.close();
