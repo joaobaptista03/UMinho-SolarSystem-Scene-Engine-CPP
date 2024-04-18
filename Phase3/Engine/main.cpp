@@ -1,19 +1,16 @@
+#include <GL/glew.h>
+#include <GL/glut.h>
+
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <sstream>
 #include <regex>
-
 #include <stack>
-#ifdef __APPLE__
-#include <GLUT/glut.h>
-#else
-#include <GL/glut.h>
-#endif
+#include <math.h>
 
 #define _USE_MATH_DEFINES
-#include <math.h>
 
 int windowWidth = 0, windowHeight = 0;
 int cameraX = 0, cameraY = 0, cameraZ = 0;
@@ -31,12 +28,10 @@ std::string cleanXML(const std::string& xmlString) {
 }
 
 struct Point {
-	float x, y, z;
+	float x = 0, y = 0, z = 0;
 };
 
 struct Translate {
-	bool hasPoint = false;
-	Point point;
     bool hasTime = false;
     float time = 0;
     bool align = false;
@@ -48,7 +43,7 @@ struct Scale {
 };
 
 struct Rotate {
-    float angle;
+    float angle = 0;
 	Point point;
     bool hasTime = false;
     float time;
@@ -64,68 +59,87 @@ struct Group{
 	Group *parent;
 };
 
+struct Model {
+    GLuint vboId;
+    int numVertices;
+};
+
 std::vector<Group> sceneGraph;
 std::stack<Group*> groupStack;
+std::map<std::string, Model> modelCache;
 
-void drawModel(std::string file) {
-	std::ifstream inputFile;
-	inputFile.open(file);
-
-	if (!inputFile.is_open())
-	{
-		std::cerr << "Failed to open file: " << file << "\n";
-		return;
-	}
-
-	std::string line;
-	while (std::getline(inputFile, line))
-	{
-		std::istringstream iss(line);
-		std::vector<std::string> tokens;
-		std::string token;
-		
-
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		glColor3f(1.0f, 1.0f, 1.0f);
-		glBegin(GL_TRIANGLES);
-
-		while (iss >> token) {
-			std::istringstream subIss(token);
-			std::string subToken;
-			while (std::getline(subIss, subToken, ','))
-				tokens.push_back(subToken);
-			
-			if (tokens.size() == 3) {
-				glVertex3f(std::stof(tokens[0]), std::stof(tokens[1]), std::stof(tokens[2]));
-				tokens.clear();
-			}
-		}
-
-		glEnd();
-	}
-
-	inputFile.close();
+GLuint loadModelToVBO(const std::vector<float>& vertices) {
+    GLuint vboId;
+    glGenBuffers(1, &vboId);
+    glBindBuffer(GL_ARRAY_BUFFER, vboId);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    return vboId;
 }
 
+void drawModel(const std::string& file) {
+    if (modelCache.find(file) == modelCache.end()) {
+        std::ifstream inputFile(file);
+        if (!inputFile.is_open()) {
+            std::cerr << "Failed to open file: " << file << "\n";
+            return;
+        }
+        
+        std::string line;
+        std::vector<float> vertices;
+        while (std::getline(inputFile, line)) {
+            std::istringstream iss(line);
+			std::string token;
+			
+            while (iss >> token) {
+				std::istringstream subIss(token);
+				std::string subToken;
+
+				while (std::getline(subIss, subToken, ',')) {
+					float subTokenFloat = std::stof(subToken);
+					vertices.push_back(subTokenFloat);
+				}
+            }
+        }
+        
+        inputFile.close();
+        Model model;
+        model.numVertices = vertices.size() / 3;
+        model.vboId = loadModelToVBO(vertices);
+        modelCache[file] = model;
+    }
+
+    Model& model = modelCache[file];
+    glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(3, GL_FLOAT, 0, nullptr);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
 
 void drawGroup(const Group& group) {
     glPushMatrix();
 
-    if (group.hasRotate) glRotatef(group.rotate.angle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
+    if (group.hasRotate) {
+		// TODO
+		glRotatef(group.rotate.angle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
+	}
 
-    if (group.hasTranslate) glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
+    if (group.hasTranslate) {
+		// TODO
+	}
 
     if (group.hasScale) glScalef(group.scale.point.x, group.scale.point.y, group.scale.point.z);
 
     for (const std::string& modelFile : group.models) drawModel(modelFile);
 
-    for (const Group& subgroup : group.subgroups) {
-        drawGroup(subgroup);
-    }
+    for (const Group& subgroup : group.subgroups) drawGroup(subgroup);
 
     glPopMatrix();
 }
-
 
 void changeSize(int w, int h) {
 	if(h == 0)
@@ -167,6 +181,8 @@ void renderScene() {
 		glColor3f(1.0f, 0.0f, 1.0f);
 		glVertex3f(0.0f, 0.0f, 5.0f);
 	glEnd();
+
+	glColor3f(1.0f, 1.0f, 1.0f);
 
 	for (const Group& group : sceneGraph) {
 		drawGroup(group);
@@ -432,30 +448,8 @@ void parseTranslate(std::string line) {
 	Group* group = groupStack.top();
 
 	group->hasTranslate = true;
-	std::size_t xPos = line.find("x=");
-	std::size_t yPos = line.find("y=");
-	std::size_t zPos = line.find("z=");
 	std::size_t timePos = line.find("time=");
 	std::size_t alignPos = line.find("align=");
-
-	if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
-		group->translate.hasPoint = true;
-
-		std::size_t xStart = line.find("\"", xPos) + 1;
-		std::size_t xEnd = line.find("\"", xStart);
-		std::size_t yStart = line.find("\"", yPos) + 1;
-		std::size_t yEnd = line.find("\"", yStart);
-		std::size_t zStart = line.find("\"", zPos) + 1;
-		std::size_t zEnd = line.find("\"", zStart);
-
-		std::string xStr = line.substr(xStart, xEnd - xStart);
-		std::string yStr = line.substr(yStart, yEnd - yStart);
-		std::string zStr = line.substr(zStart, zEnd - zStart);
-
-		group->translate.point.x = std::stof(xStr);
-		group->translate.point.y = std::stof(yStr);
-		group->translate.point.z = std::stof(zStr);
-	}
 
 	if (timePos != std::string::npos) {
 		group->translate.hasTime = true;
@@ -472,7 +466,6 @@ void parseTranslate(std::string line) {
 		std::size_t alignEnd = line.find("\"", alignStart);
 
 		std::string alignStr = line.substr(alignStart, alignEnd - alignStart);
-		std::cout << "Align: " << alignStr << std::endl;
 		group->translate.align = (alignStr == "true");
 	}
 }
@@ -587,20 +580,7 @@ void parseModel(std::string line) {
 	}
 }
 
-int main(int argc, char *argv[]) {
-	if (argc != 2) {
-		std::cerr << "Usage: " << argv[0] << " <xml file>" << std::endl;
-		return 1;
-	}
-
-	std::ifstream inputFile;
-	inputFile.open(argv[1]);
-
-	if (!inputFile.is_open()) {
-		std::cerr << "Failed to open file: " << argv[1] << "\n";
-		return 2;
-	}
-
+void parseXML(std::ifstream& inputFile) {
 	std::string line;
 	while (std::getline(inputFile, line)) {
 		line = cleanXML(line);
@@ -629,12 +609,31 @@ int main(int argc, char *argv[]) {
 
 		else if (line.find("<model") != std::string::npos) parseModel(line);
 	}
+}
+
+int main(int argc, char *argv[]) {
+	if (argc != 2) {
+		std::cerr << "Usage: " << argv[0] << " <xml file>" << std::endl;
+		return 1;
+	}
+
+	std::ifstream inputFile;
+	inputFile.open(argv[1]);
+
+	if (!inputFile.is_open()) {
+		std::cerr << "Failed to open file: " << argv[1] << "\n";
+		return 2;
+	}
+
+	parseXML(inputFile);
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA);
 	glutInitWindowPosition(100,100);
 	glutInitWindowSize(windowWidth, windowHeight);
 	glutCreateWindow("CG@DI-UM");
+
+	glewInit();
 
 	glutDisplayFunc(renderScene);
 	glutReshapeFunc(changeSize);

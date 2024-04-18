@@ -1,29 +1,17 @@
 <world> 
     <window width="512" height="512" />
     <camera> 
-	    <position x="10" y="20" z="8" />
+	    <position x="4" y="4" z="6" />
 	    <lookAt x="0" y="0" z="0" />
-	    <up x="0" y="1" z="0" /> 
-        <projection fov="60" near="1" far="1000" />
+	    <up x="0" y="1" z="0" /> <!-- optional, use these values as default-->
+        <projection fov="60" near="1" far="1000" /> <!-- optional, use these values as default-->
     </camera>
-    <group> 
+	<group> 
 		<transform>
-			<rotate time="3" x="0" y="1" z="0" />
+			<rotate angle="-90" x = "1" y="0" z = "0" /> 
 		</transform>
-		<group>
-			<transform>
-				<translate time = "10" align="true">
-					<point x = "0" y = "0" z = "4" />
-					<point x = "4" y = "0" z = "0" />
-					<point x = "0" y = "0" z = "-4" />
-					<point x = "-4" y = "10" z = "0" />
-				</translate>
-				<rotate angle="-90" x="1" y="0" z="0" />
-				<scale x="0.5" y="0.5" z="0.5" />
-			</transform>
-			<models> 
-				<model file="bezier_10.3d" /> <!-- generator patch teapot.patch 10 bezier_10.3d -->
-			</models>
-		</group>
+  		<models> 
+			<model file="bezier_10.3d" /> <!-- generator patch teapot.patch 10 bezier_10.3d -->
+ 		</models>
  	</group>
 </world>
