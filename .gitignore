@@ -15,3 +15,12 @@ Phase2/Generator/cone.o
 Phase2/Engine/build/*
 Phase2/Output/*
 .vscode/settings.json
+Phase3/Generator/generator
+Phase3/Generator/main.o
+Phase3/Generator/box.o
+Phase3/Generator/plane.o
+Phase3/Generator/sphere.o
+Phase3/Generator/cone.o
+Phase3/Generator/bezier.o
+Phase3/Engine/build/*
+Phase3/Output/*
