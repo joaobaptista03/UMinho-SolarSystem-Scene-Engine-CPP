@@ -22,61 +22,14 @@ int startX, startY, tracking = 0;
 
 float alfa = 0.0f, beta = 0.0f, radius = 5.0f;
 
-std::string cleanXML(const std::string& xmlString) {
-    std::regex re("\\s*=\\s*");
-    std::string cleanedString = std::regex_replace(xmlString, re, "=");
-    return cleanedString;
-}
-
 struct Point {
 	float x = 0, y = 0, z = 0;
-
-	Point operator+(const Point& other) const {
-		return {x + other.x, y + other.y, z + other.z};
-	}
-
-	Point operator-(const Point& other) const {
-		return {x - other.x, y - other.y, z - other.z};
-	}
-
-	Point operator*(float scalar) const {
-		return {x * scalar, y * scalar, z * scalar};
-	}
-
-	Point operator/(float scalar) const {
-		return {x / scalar, y / scalar, z / scalar};
-	}
-
-    float dot(const Point& other) const {
-        return x * other.x + y * other.y + z * other.z;
-    }
-
-    Point cross(const Point& other) const {
-        return {
-            y * other.z - z * other.y,
-            z * other.x - x * other.z,
-            x * other.y - y * other.x
-        };
-    }
-
-    Point() : x(0), y(0), z(0) {}
-    Point(float xVal, float yVal, float zVal) : x(xVal), y(yVal), z(zVal) {}
-
-    Point normalize() const {
-        float len = length();
-        if (len == 0) return {0, 0, 0};
-        return {x / len, y / len, z / len};
-    }
-
-    float length() const {
-        return sqrt(x * x + y * y + z * z);
-    }
 };
 
 struct Translate {
-    bool hasTime = false;
+	Point point = {-1234, -1234, -1234}; // If point == {-1234, -1234, -1234} then it's a Catmull Rom Translation
     float time = 0;
-    bool align = false;
+    bool alignDirection = false;
     std::vector<Point> path;
 };
 
@@ -85,13 +38,12 @@ struct Scale {
 };
 
 struct Rotate {
-    float angle = 0;
 	Point point;
     bool hasTime = false;
-    float time;
+    float timeOrAngle;
 };
 
-struct Group{
+struct Group {
 	Translate translate;
 	Rotate rotate;
 	Scale scale;
@@ -109,78 +61,6 @@ struct Model {
 std::vector<Group> sceneGraph;
 std::stack<Group*> groupStack;
 std::map<std::string, Model> modelCache;
-
-Point catmullRomTangent(float t, const Point& p0, const Point& p1, const Point& p2, const Point& p3) {
-    float t2 = t * t;
-    Point tangent = {
-        -0.5 * p0.x + 0.5 * p2.x + t * (-p0.x + p1.x) + t2 * (1.5 * p0.x - 2.5 * p1.x + 2 * p2.x - 0.5 * p3.x),
-        -0.5 * p0.y + 0.5 * p2.y + t * (-p0.y + p1.y) + t2 * (1.5 * p0.y - 2.5 * p1.y + 2 * p2.y - 0.5 * p3.y),
-        -0.5 * p0.z + 0.5 * p2.z + t * (-p0.z + p1.z) + t2 * (1.5 * p0.z - 2.5 * p1.z + 2 * p2.z - 0.5 * p3.z)
-    };
-
-    float magnitude = sqrt(tangent.x * tangent.x + tangent.y * tangent.y + tangent.z * tangent.z);
-    tangent.x /= magnitude;
-    tangent.y /= magnitude;
-    tangent.z /= magnitude;
-
-    return tangent;
-}
-
-Point catmullRomPoint(float t, const Point& p0, const Point& p1, const Point& p2, const Point& p3) {
-    float t2 = t * t;
-    float t3 = t2 * t;
-    float b1 = -0.5 * t3 + t2 - 0.5 * t;
-    float b2 = 1.5 * t3 - 2.5 * t2 + 1.0;
-    float b3 = -1.5 * t3 + 2.0 * t2 + 0.5 * t;
-    float b4 = 0.5 * t3 - 0.5 * t2;
-
-    return {
-        p0.x * b1 + p1.x * b2 + p2.x * b3 + p3.x * b4,
-        p0.y * b1 + p1.y * b2 + p2.y * b3 + p3.y * b4,
-        p0.z * b1 + p1.z * b2 + p2.z * b3 + p3.z * b4
-    };
-}
-
-void drawCatmullRomSpline(const std::vector<Point>& controlPoints) {
-    glColor3f(1.0, 0.0, 0.0);
-    glBegin(GL_LINE_STRIP);
-
-    if (controlPoints.size() < 4) return;
-
-    for (int i = 0; i < controlPoints.size() - 3; i++) {
-        for (float t = 0; t <= 1.0f; t += 0.02f) { // increment t by 0.02 to get smooth curve
-            Point pos = catmullRomPoint(t, controlPoints[i], controlPoints[i + 1], controlPoints[i + 2], controlPoints[i + 3]);
-            glVertex3f(pos.x, pos.y, pos.z);
-        }
-    }
-
-	glColor3f(1.0, 1.0, 1.0);
-
-    glEnd();
-}
-
-void animateTranslation(const Translate& trans, float currentTime) {
-    if (trans.path.size() < 4) return;
-    drawCatmullRomSpline(trans.path);
-    float segmentTime = trans.time / (trans.path.size() - 3);
-    int segmentIndex = std::min(int(currentTime / segmentTime), int(trans.path.size() - 4));
-    float localT = std::max(0.0f, std::min((currentTime - segmentTime * segmentIndex) / segmentTime, 1.0f));
-    
-    Point pos = catmullRomPoint(localT, trans.path[segmentIndex], trans.path[segmentIndex+1], trans.path[segmentIndex+2], trans.path[segmentIndex+3]);
-
-    Point tan = catmullRomTangent(localT, trans.path[segmentIndex], trans.path[segmentIndex+1], trans.path[segmentIndex+2], trans.path[segmentIndex+3]);
-    tan = tan.normalize();
-
-    Point forward(0, 0, 1);
-
-    Point axis = forward.cross(tan).normalize();
-
-    float angle = acos(forward.dot(tan)) * 180.0f / M_PI;
-
-    glTranslatef(pos.x, pos.y, pos.z);
-
-    if (trans.align && axis.length() != 0) glRotatef(angle, axis.x, axis.y, axis.z);
-}
 
 GLuint loadModelToVBO(const std::vector<float>& vertices) {
     GLuint vboId;
@@ -239,15 +119,25 @@ void drawGroup(const Group& group, float currentTime) {
 
     if (group.hasRotate) {
         if (group.rotate.hasTime) {
-            float angle = (currentTime / group.rotate.time) * 360.0f;
-            glRotatef(angle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
+			float anglePerSecond = 360.0f / group.rotate.timeOrAngle;
+			float currentAngle = fmod(currentTime * anglePerSecond, 360.0f);
+			glRotatef(currentAngle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
         } else {
-            glRotatef(group.rotate.angle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
+			glRotatef(group.rotate.timeOrAngle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
         }
 	}
 
     if (group.hasTranslate) {
-		animateTranslation(group.translate, currentTime);
+		if (group.translate.point.x != -1234 && group.translate.point.y != -1234 && group.translate.point.z != -1234)
+			glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
+		else {
+			if (group.translate.alignDirection) {
+				// TODO: Implement
+			}
+			else {
+				// TODO: Implement
+			}
+		}
 	}
 
     if (group.hasScale) glScalef(group.scale.point.x, group.scale.point.y, group.scale.point.z);
@@ -568,12 +458,31 @@ void parseTranslate(std::string line) {
 	Group* group = groupStack.top();
 
 	group->hasTranslate = true;
+	std::size_t xPos = line.find("x=");
+	std::size_t yPos = line.find("y=");
+	std::size_t zPos = line.find("z=");
 	std::size_t timePos = line.find("time=");
 	std::size_t alignPos = line.find("align=");
 
-	if (timePos != std::string::npos) {
-		group->translate.hasTime = true;
 
+	if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+		std::size_t xStart = line.find("\"", xPos) + 1;
+		std::size_t xEnd = line.find("\"", xStart);
+		std::size_t yStart = line.find("\"", yPos) + 1;
+		std::size_t yEnd = line.find("\"", yStart);
+		std::size_t zStart = line.find("\"", zPos) + 1;
+		std::size_t zEnd = line.find("\"", zStart);
+
+		std::string xStr = line.substr(xStart, xEnd - xStart);
+		std::string yStr = line.substr(yStart, yEnd - yStart);
+		std::string zStr = line.substr(zStart, zEnd - zStart);
+
+		group->translate.point.x = std::stof(xStr);
+		group->translate.point.y = std::stof(yStr);
+		group->translate.point.z = std::stof(zStr);
+	}
+
+	if (timePos != std::string::npos) {
 		std::size_t timeStart = line.find("\"", timePos) + 1;
 		std::size_t timeEnd = line.find("\"", timeStart);
 
@@ -586,7 +495,7 @@ void parseTranslate(std::string line) {
 		std::size_t alignEnd = line.find("\"", alignStart);
 
 		std::string alignStr = line.substr(alignStart, alignEnd - alignStart);
-		group->translate.align = (alignStr == "true");
+		group->translate.alignDirection = (alignStr == "true");
 	}
 }
 
@@ -623,7 +532,7 @@ void parseRotate(std::string line) {
 		std::size_t angleEnd = line.find("\"", angleStart);
 
 		std::string angleStr = line.substr(angleStart, angleEnd - angleStart);
-		group->rotate.angle = std::stof(angleStr);
+		group->rotate.timeOrAngle = std::stof(angleStr);
 	}
 
 	if (timePos != std::string::npos) {
@@ -632,7 +541,7 @@ void parseRotate(std::string line) {
 
 		std::string timeStr = line.substr(timeStart, timeEnd - timeStart);
 		group->rotate.hasTime = true;
-		group->rotate.time = std::stof(timeStr);
+		group->rotate.timeOrAngle = std::stof(timeStr);
 	}
 }
 
@@ -703,7 +612,8 @@ void parseModel(std::string line) {
 void parseXML(std::ifstream& inputFile) {
 	std::string line;
 	while (std::getline(inputFile, line)) {
-		line = cleanXML(line);
+		std::regex cleanSpaces("\\s*=\\s*");
+		line = std::regex_replace(line, cleanSpaces, "=");
 
 		if (line.find("<window") != std::string::npos) parseWindow(line);
 
