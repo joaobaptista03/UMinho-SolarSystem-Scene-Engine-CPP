@@ -132,6 +132,7 @@ void drawGroup(const Group& group, float currentTime) {
 			glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
 		else {
 			// TODO Catmull-Rom
+		}
 	}
 
     if (group.hasScale) glScalef(group.scale.point.x, group.scale.point.y, group.scale.point.z);
