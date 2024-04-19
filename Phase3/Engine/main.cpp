@@ -26,24 +26,8 @@ struct Point {
 	float x = 0, y = 0, z = 0;
 };
 
-void cross(float *a, float *b, float *res) {
-
-	res[0] = a[1]*b[2] - a[2]*b[1];
-	res[1] = a[2]*b[0] - a[0]*b[2];
-	res[2] = a[0]*b[1] - a[1]*b[0];
-}
-
-
-void normalize(float *a) {
-
-	float l = sqrt(a[0]*a[0] + a[1] * a[1] + a[2] * a[2]);
-	a[0] = a[0]/l;
-	a[1] = a[1]/l;
-	a[2] = a[2]/l;
-}
-
 struct Translate {
-	Point point = {-1234, -1234, -1234};
+	Point point = {-1234, -1234, -1234}; // -1234 is a flag to indicate that the Translation is a Catmull-Rom curve
     float time = 0;
     bool alignDirection = false;
     std::vector<Point> path;
@@ -77,89 +61,6 @@ struct Model {
 std::vector<Group> sceneGraph;
 std::stack<Group*> groupStack;
 std::map<std::string, Model> modelCache;
-
-void alignObject(const Point& direction) {
-    GLfloat up[3] = {0.0, 1.0, 0.0};
-    GLfloat forward[3] = {direction.x, direction.y, direction.z};
-    GLfloat right[3];
-    GLfloat dotProduct = forward[0]*up[0] + forward[1]*up[1] + forward[2]*up[2];
-
-    forward[0] -= dotProduct * up[0];
-    forward[1] -= dotProduct * up[1];
-    forward[2] -= dotProduct * up[2];
-    normalize(forward);
-
-    cross(forward, up, right);
-
-    glRotatef(atan2(-right[2], right[0]) * 180.0 / M_PI, 0, 1, 0);
-    glRotatef(asin(right[1]) * 180.0 / M_PI, 1, 0, 0);
-}
-
-void multMatrixVector(float m[4][4], float *v, float *res) {
-	for (int j = 0; j < 4; ++j) {
-		res[j] = 0;
-		for (int k = 0; k < 4; ++k) {
-			res[j] += v[k] * m[j][k];
-		}
-	}
-}
-
-void getCatmullRomPoint(float t, Point p0, Point p1, Point p2, Point p3, Point& pos, Point& deriv) {
-    float m[4][4] = {{-0.5f, 1.5f, -1.5f, 0.5f},
-                     {1.0f, -2.5f, 2.0f, -0.5f},
-                     {-0.5f, 0.0f, 0.5f, 0.0f},
-                     {0.0f, 1.0f, 0.0f, 0.0f}};
-    float px[4] = {p0.x, p1.x, p2.x, p3.x};
-    float py[4] = {p0.y, p1.y, p2.y, p3.y};
-    float pz[4] = {p0.z, p1.z, p2.z, p3.z};
-
-    float ax[4], ay[4], az[4];
-    multMatrixVector(m, px, ax);
-    multMatrixVector(m, py, ay);
-    multMatrixVector(m, pz, az);
-
-    float tv[4] = {t * t * t, t * t, t, 1};
-    float tvd[4] = {3 * t * t, 2 * t, 1, 0};
-
-    pos.x = pos.y = pos.z = 0;
-    deriv.x = deriv.y = deriv.z = 0;
-
-    for (int i = 0; i < 4; i++) {
-        pos.x += tv[i] * ax[i];
-        pos.y += tv[i] * ay[i];
-        pos.z += tv[i] * az[i];
-
-        deriv.x += tvd[i] * ax[i];
-        deriv.y += tvd[i] * ay[i];
-        deriv.z += tvd[i] * az[i];
-    }
-}
-
-void getGlobalCatmullRomPoint(float gt, const std::vector<Point>& controlPoints, Point& pos, Point& deriv) {
-    int pointCount = controlPoints.size();
-    float t = gt * pointCount;
-    int index = floor(t);
-    t = t - index;
-    
-    int indices[4];
-    indices[0] = (index + pointCount - 1) % pointCount;
-    indices[1] = (indices[0] + 1) % pointCount;
-    indices[2] = (indices[1] + 1) % pointCount;
-    indices[3] = (indices[2] + 1) % pointCount;
-
-    getCatmullRomPoint(t, controlPoints[indices[0]], controlPoints[indices[1]],
-                          controlPoints[indices[2]], controlPoints[indices[3]], pos, deriv);
-}
-
-void drawCatmullRomCurve(const std::vector<Point>& controlPoints) {
-	Point pos, deriv;
-	glBegin(GL_LINE_LOOP);
-	for (float gt = 0; gt < 1; gt += 0.01) {
-		getGlobalCatmullRomPoint(gt, controlPoints, pos, deriv);
-		glVertex3f(pos.x, pos.y, pos.z);
-	}
-	glEnd();
-}
 
 GLuint loadModelToVBO(const std::vector<float>& vertices) {
     GLuint vboId;
@@ -230,15 +131,7 @@ void drawGroup(const Group& group, float currentTime) {
 		if (group.translate.point.x != -1234 && group.translate.point.y != -1234 && group.translate.point.z != -1234)
 			glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
 		else {
-            Point pos, deriv;
-            float gt = fmod(currentTime / group.translate.time, 1.0);
-            getGlobalCatmullRomPoint(gt, group.translate.path, pos, deriv);
-            glTranslatef(pos.x, pos.y, pos.z);
-
-            if (group.translate.alignDirection) alignObject(deriv);
-
-			drawCatmullRomCurve(group.translate.path);
-		}
+			// TODO Catmull-Rom
 	}
 
     if (group.hasScale) glScalef(group.scale.point.x, group.scale.point.y, group.scale.point.z);
