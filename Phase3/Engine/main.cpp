@@ -27,7 +27,7 @@ struct Point {
 };
 
 struct Translate {
-	Point point = {-1234, -1234, -1234}; // -1234 is a flag to indicate that the Translation is a Catmull-Rom curve
+	Point point = {-1234, -1234, -1234}; // -1234 is a flag to indicate that the Translation is a Catmull-Rom curve, if it isn't, the point is the translation, ignoring the next atributes
     float time = 0;
     bool alignDirection = false;
     std::vector<Point> path;
