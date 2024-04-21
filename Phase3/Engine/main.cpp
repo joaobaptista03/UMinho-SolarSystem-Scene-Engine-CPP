@@ -27,10 +27,11 @@ struct Point {
 };
 
 struct Translate {
-	Point point = {-1234, -1234, -1234}; // -1234 is a flag to indicate that the Translation is a Catmull-Rom curve, if it isn't, the point is the translation, ignoring the next atributes
+	Point point = {0, 0, 0}; 
     float time = 0;
     bool alignDirection = false;
     std::vector<Point> path;
+	bool isCatmullRom = false;
 };
 
 struct Scale {
@@ -563,6 +564,7 @@ void parsePoint(std::string line) {
 		point.y = std::stof(yStr);
 		point.z = std::stof(zStr);
 		group->translate.path.push_back(point);
+		group->translate.isCatmullRom = true;
 	}
 }
 
