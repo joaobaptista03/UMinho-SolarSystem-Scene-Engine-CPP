@@ -22,6 +22,8 @@ int startX, startY, tracking = 0;
 
 float alfa = 0.0f, beta = 0.0f, radius = 5.0f;
 
+bool drawCurve = false;
+
 struct Point {
 	float x = 0, y = 0, z = 0;
 };
@@ -105,7 +107,6 @@ void alignObject(const Point& direction) {
 
     // Apply the rotation matrix using glMultMatrixf
     glMultMatrixf(rotMatrix);
-	glRotatef(-90, 0, 1, 0);
 }
 
 void multMatrixVector(float m[4][4], float *v, float *res) {
@@ -236,13 +237,13 @@ void drawGroup(const Group& group, float currentTime) {
 			if (!group.translate.isCatmullRom)
 				glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
 			else {
-				drawCatmullRomCurve(group.translate.path);
+				if (drawCurve) drawCatmullRomCurve(group.translate.path);
 				Point pos, deriv;
 				float gt = fmod(currentTime / group.translate.time, 1.0);
 				getGlobalCatmullRomPoint(gt, group.translate.path, pos, deriv);
 				glTranslatef(pos.x, pos.y, pos.z);
 	
-				if (group.translate.alignDirection) alignObject(deriv);
+				//if (group.translate.alignDirection) alignObject(deriv);
 			}
 		} else if (group.transformations[i] == 'r') {
 			if (group.rotate.hasTime) {
@@ -340,6 +341,8 @@ void processKeys(unsigned char c, int xx, int yy) {
 			break;
 
 		case 'e': radius += 0.1f; break;
+
+		case 'c': drawCurve = !drawCurve; break;
 	}
 
 	cameraX = radius * cos(beta) * sin(alfa);
