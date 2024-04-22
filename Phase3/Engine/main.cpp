@@ -81,32 +81,48 @@ void normalize(float *a) {
 	a[2] = a[2]/l;
 }
 
+void multiplyMatrices(GLfloat result[16], const GLfloat mat1[16], const GLfloat mat2[16]) {
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            result[i*4 + j] = 0;
+            for (int k = 0; k < 4; ++k) {
+                result[i*4 + j] += mat1[i*4 + k] * mat2[k*4 + j];
+            }
+        }
+    }
+}
+
 void alignObject(const Point& direction) {
-    GLfloat up[3] = {0.0, 1.0, 0.0};  // Assume up vector is globally up in the y-axis
-    GLfloat forward[3] = {direction.x, direction.y, direction.z};  // Direction of movement
-    GLfloat right[3];
+	GLfloat up[3] = {0.0, 1.0, 0.0};
+	GLfloat forward[3] = {direction.x, direction.y, direction.z};
+	GLfloat right[3];
 
-    // Normalize the forward vector
-    normalize(forward);
+	normalize(forward);
+	cross(up, forward, right);
+	normalize(right);
 
-    // Compute the right vector using the cross product of the global up vector and the forward vector
-    cross(up, forward, right);
-    normalize(right); // Normalize the right vector
+	GLfloat newUp[3];
+	cross(forward, right, newUp);
 
-    // Recompute the up vector as the cross product of the forward and right vectors to ensure orthogonality
-    GLfloat newUp[3];
-    cross(forward, right, newUp);
+	GLfloat rotMatrix[16] = {
+		right[0], right[1], right[2], 0,
+		newUp[0], newUp[1], newUp[2], 0,
+		forward[0], forward[1], forward[2], 0,
+		0, 0, 0, 1
+	};
 
-    // Create a rotation matrix from the forward, right, and up vectors
-    GLfloat rotMatrix[16] = {
-        right[0], right[1], right[2], 0,
-        newUp[0], newUp[1], newUp[2], 0,
-        forward[0], forward[1], forward[2], 0,
-        0, 0, 0, 1
-    };
+	GLfloat rotMatrix2[16] = {
+		0, 0, 1, 0,
+		0, 1, 0, 0,
+		-1, 0, 0, 0,
+		0, 0, 0, 1
+	};
 
-    // Apply the rotation matrix using glMultMatrixf
-    glMultMatrixf(rotMatrix);
+	GLfloat resultMatrix[16];
+	multiplyMatrices(resultMatrix, rotMatrix, rotMatrix2);
+	memcpy(rotMatrix, resultMatrix, sizeof(resultMatrix));
+
+	glMultMatrixf(rotMatrix);
 }
 
 void multMatrixVector(float m[4][4], float *v, float *res) {
@@ -243,7 +259,7 @@ void drawGroup(const Group& group, float currentTime) {
 				getGlobalCatmullRomPoint(gt, group.translate.path, pos, deriv);
 				glTranslatef(pos.x, pos.y, pos.z);
 	
-				//if (group.translate.alignDirection) alignObject(deriv);
+				if (group.translate.alignDirection) alignObject(deriv);
 			}
 		} else if (group.transformations[i] == 'r') {
 			if (group.rotate.hasTime) {
