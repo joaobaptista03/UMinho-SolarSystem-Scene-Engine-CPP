@@ -342,7 +342,7 @@ void processKeys(unsigned char c, int xx, int yy) {
 
 		case 'e': radius += 0.1f; break;
 
-		case 'c': drawCurve = !drawCurve; break;
+		case ' ': drawCurve = !drawCurve; break;
 	}
 
 	cameraX = radius * cos(beta) * sin(alfa);
@@ -355,10 +355,10 @@ void processKeys(unsigned char c, int xx, int yy) {
 void processSpecialKeys(int key, int xx, int yy) {
 	switch (key) {
 		case GLUT_KEY_RIGHT:
-			alfa -= 0.1; break;
+			alfa += 0.1; break;
 
 		case GLUT_KEY_LEFT:
-			alfa += 0.1; break;
+			alfa -= 0.1; break;
 
 		case GLUT_KEY_UP:
 			beta += 0.1f;
@@ -372,12 +372,12 @@ void processSpecialKeys(int key, int xx, int yy) {
 				beta = -1.5f;
 			break;
 
-		case GLUT_KEY_PAGE_DOWN: radius -= 0.1f;
+		case GLUT_KEY_PAGE_DOWN: radius -= 1.0f;
 			if (radius < 0.1f)
 				radius = 0.1f;
 			break;
 
-		case GLUT_KEY_PAGE_UP: radius += 0.1f; break;
+		case GLUT_KEY_PAGE_UP: radius += 1.0f; break;
 	}
 	
 	cameraX = radius * cos(beta) * sin(alfa);
