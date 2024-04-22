@@ -27,11 +27,11 @@ struct Point {
 };
 
 struct Translate {
-	Point point = {0, 0, 0}; 
+	Point point = {0, 0, 0};
+	bool isCatmullRom = false;
     float time = 0;
     bool alignDirection = false;
     std::vector<Point> path;
-	bool isCatmullRom = false;
 };
 
 struct Scale {
@@ -48,10 +48,12 @@ struct Group {
 	Translate translate;
 	Rotate rotate;
 	Scale scale;
+	char transformations[3] = {0, 0, 0};
     bool hasTranslate = false, hasRotate = false, hasScale = false;
 	std::vector<std::string> models;
 	std::vector<Group> subgroups;
 	Group *parent;
+	int counter = 0;
 };
 
 struct Model {
@@ -62,6 +64,117 @@ struct Model {
 std::vector<Group> sceneGraph;
 std::stack<Group*> groupStack;
 std::map<std::string, Model> modelCache;
+
+void cross(float *a, float *b, float *res) {
+	res[0] = a[1]*b[2] - a[2]*b[1];
+	res[1] = a[2]*b[0] - a[0]*b[2];
+	res[2] = a[0]*b[1] - a[1]*b[0];
+}
+
+
+void normalize(float *a) {
+	float l = sqrt(a[0]*a[0] + a[1] * a[1] + a[2] * a[2]);
+	a[0] = a[0]/l;
+	a[1] = a[1]/l;
+	a[2] = a[2]/l;
+}
+
+void alignObject(const Point& direction) {
+    GLfloat up[3] = {0.0, 1.0, 0.0};  // Assume up vector is globally up in the y-axis
+    GLfloat forward[3] = {direction.x, direction.y, direction.z};  // Direction of movement
+    GLfloat right[3];
+
+    // Normalize the forward vector
+    normalize(forward);
+
+    // Compute the right vector using the cross product of the global up vector and the forward vector
+    cross(up, forward, right);
+    normalize(right); // Normalize the right vector
+
+    // Recompute the up vector as the cross product of the forward and right vectors to ensure orthogonality
+    GLfloat newUp[3];
+    cross(forward, right, newUp);
+
+    // Create a rotation matrix from the forward, right, and up vectors
+    GLfloat rotMatrix[16] = {
+        right[0], right[1], right[2], 0,
+        newUp[0], newUp[1], newUp[2], 0,
+        forward[0], forward[1], forward[2], 0,
+        0, 0, 0, 1
+    };
+
+    // Apply the rotation matrix using glMultMatrixf
+    glMultMatrixf(rotMatrix);
+	glRotatef(-90, 0, 1, 0);
+}
+
+void multMatrixVector(float m[4][4], float *v, float *res) {
+	for (int j = 0; j < 4; ++j) {
+		res[j] = 0;
+		for (int k = 0; k < 4; ++k) {
+			res[j] += v[k] * m[j][k];
+		}
+	}
+}
+
+void getCatmullRomPoint(float t, Point p0, Point p1, Point p2, Point p3, Point& pos, Point& deriv) {
+    
+	float m[4][4] = {{-0.5f, 1.5f, -1.5f, 0.5f},
+                     {1.0f, -2.5f, 2.0f, -0.5f},
+                     {-0.5f, 0.0f, 0.5f, 0.0f},
+                     {0.0f, 1.0f, 0.0f, 0.0f}};
+
+    float px[4] = {p0.x, p1.x, p2.x, p3.x};
+    float py[4] = {p0.y, p1.y, p2.y, p3.y};
+    float pz[4] = {p0.z, p1.z, p2.z, p3.z};
+
+    float ax[4], ay[4], az[4];
+    multMatrixVector(m, px, ax);
+    multMatrixVector(m, py, ay);
+    multMatrixVector(m, pz, az);
+
+    float tv[4] = {t * t * t, t * t, t, 1};
+    float tvd[4] = {3 * t * t, 2 * t, 1, 0};
+
+    pos.x = pos.y = pos.z = 0;
+    deriv.x = deriv.y = deriv.z = 0;
+
+    for (int i = 0; i < 4; i++) {
+        pos.x += tv[i] * ax[i];
+        pos.y += tv[i] * ay[i];
+        pos.z += tv[i] * az[i];
+
+        deriv.x += tvd[i] * ax[i];
+        deriv.y += tvd[i] * ay[i];
+        deriv.z += tvd[i] * az[i];
+    }
+}
+
+void getGlobalCatmullRomPoint(float gt, const std::vector<Point>& controlPoints, Point& pos, Point& deriv) {
+    int pointCount = controlPoints.size();
+    float t = gt * pointCount;
+    int index = floor(t);
+    t = t - index;
+    
+    int indices[4];
+    indices[0] = (index + pointCount - 1) % pointCount;
+    indices[1] = (indices[0] + 1) % pointCount;
+    indices[2] = (indices[1] + 1) % pointCount;
+    indices[3] = (indices[2] + 1) % pointCount;
+
+    getCatmullRomPoint(t, controlPoints[indices[0]], controlPoints[indices[1]],
+                          controlPoints[indices[2]], controlPoints[indices[3]], pos, deriv);
+}
+
+void drawCatmullRomCurve(const std::vector<Point>& controlPoints) {
+	Point pos, deriv;
+	glBegin(GL_LINE_LOOP);
+	for (float gt = 0; gt < 1; gt += 0.01) {
+		getGlobalCatmullRomPoint(gt, controlPoints, pos, deriv);
+		glVertex3f(pos.x, pos.y, pos.z);
+	}
+	glEnd();
+}
 
 GLuint loadModelToVBO(const std::vector<float>& vertices) {
     GLuint vboId;
@@ -118,25 +231,32 @@ void drawModel(const std::string& file) {
 void drawGroup(const Group& group, float currentTime) {
     glPushMatrix();
 
-    if (group.hasRotate) {
-        if (group.rotate.hasTime) {
-			float anglePerSecond = 360.0f / group.rotate.timeOrAngle;
-			float currentAngle = fmod(currentTime * anglePerSecond, 360.0f);
-			glRotatef(currentAngle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
-        } else {
-			glRotatef(group.rotate.timeOrAngle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
-        }
-	}
-
-    if (group.hasTranslate) {
-		if (group.translate.point.x != -1234 && group.translate.point.y != -1234 && group.translate.point.z != -1234)
-			glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
-		else {
-			// TODO Catmull-Rom
+	for (int i = 0; i < group.counter; i++) {
+		if (group.transformations[i] == 't') {
+			if (!group.translate.isCatmullRom)
+				glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
+			else {
+				drawCatmullRomCurve(group.translate.path);
+				Point pos, deriv;
+				float gt = fmod(currentTime / group.translate.time, 1.0);
+				getGlobalCatmullRomPoint(gt, group.translate.path, pos, deriv);
+				glTranslatef(pos.x, pos.y, pos.z);
+	
+				if (group.translate.alignDirection) alignObject(deriv);
+			}
+		} else if (group.transformations[i] == 'r') {
+			if (group.rotate.hasTime) {
+				float anglePerSecond = 360.0f / group.rotate.timeOrAngle;
+				float currentAngle = fmod(currentTime * anglePerSecond, 360.0f);
+				glRotatef(currentAngle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
+			} else {
+				glRotatef(group.rotate.timeOrAngle, group.rotate.point.x, group.rotate.point.y, group.rotate.point.z);
+			}
+		} else if (group.transformations[i] == 's') {
+			glScalef(group.scale.point.x, group.scale.point.y, group.scale.point.z);
 		}
 	}
 
-    if (group.hasScale) glScalef(group.scale.point.x, group.scale.point.y, group.scale.point.z);
 
     for (const std::string& modelFile : group.models) drawModel(modelFile);
 
@@ -172,17 +292,14 @@ void renderScene() {
 	
 		glColor3f(1.0f, 0.0f, 0.0f);
 		glVertex3f(-1000.0f, 0.0f, 0.0f);
-		glColor3f(1.0f, 1.0f, 0.0f);
 		glVertex3f(1000.0f, 0.0f, 0.0f);
 		
 		glColor3f(0.0f, 1.0f, 0.0f);
 		glVertex3f(0.0f, -1000.0f, 0.0f);
-		glColor3f(0.0f, 1.0f, 1.0f);
 		glVertex3f(0.0f, 1000.0f, 0.0f);
 		
 		glColor3f(0.0f, 0.0f, 1.0f);
 		glVertex3f(0.0f, 0.0f, -1000.0f);
-		glColor3f(1.0f, 0.0f, 1.0f);
 		glVertex3f(0.0f, 0.0f, 1000.0f);
 	glEnd();
 
@@ -476,6 +593,7 @@ void parseTranslate(std::string line) {
 		group->translate.point.x = std::stof(xStr);
 		group->translate.point.y = std::stof(yStr);
 		group->translate.point.z = std::stof(zStr);
+		group->transformations[group->counter++] = 't';
 	}
 
 	if (timePos != std::string::npos) {
@@ -484,6 +602,8 @@ void parseTranslate(std::string line) {
 
 		std::string timeStr = line.substr(timeStart, timeEnd - timeStart);
 		group->translate.time = std::stof(timeStr);
+		group->transformations[group->counter++] = 't';
+		group->translate.isCatmullRom = true;
 	}
 
 	if (alignPos != std::string::npos) {
@@ -521,6 +641,7 @@ void parseRotate(std::string line) {
 		group->rotate.point.x = std::stof(xStr);
 		group->rotate.point.y = std::stof(yStr);
 		group->rotate.point.z = std::stof(zStr);
+		group->transformations[group->counter++] = 'r';
 	}
 
 	if (anglePos != std::string::npos) {
@@ -564,7 +685,6 @@ void parsePoint(std::string line) {
 		point.y = std::stof(yStr);
 		point.z = std::stof(zStr);
 		group->translate.path.push_back(point);
-		group->translate.isCatmullRom = true;
 	}
 }
 
@@ -591,6 +711,7 @@ void parseScale(std::string line) {
 		group->scale.point.x = std::stof(xStr);
 		group->scale.point.y = std::stof(yStr);
 		group->scale.point.z = std::stof(zStr);
+		group->transformations[group->counter++] = 's';
 	}
 }
 
