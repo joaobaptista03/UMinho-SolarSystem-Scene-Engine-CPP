@@ -1,4 +1,3 @@
-
 #include <GL/glew.h>
 #include <GL/glut.h>
 
@@ -320,10 +319,10 @@ void renderScene() {
 void processKeys(unsigned char c, int xx, int yy) {
 	switch (c) {
 		case 'd':
-			alfa -= 0.1; break;
+			alfa += 0.1; break;
 
 		case 'a':
-			alfa += 0.1; break;
+			alfa -= 0.1; break;
 
 		case 'w':
 			beta += 0.1f;
@@ -337,12 +336,12 @@ void processKeys(unsigned char c, int xx, int yy) {
 				beta = -1.5f;
 			break;
 
-		case 'q': radius -= 0.1f;
+		case 'e': radius -= 1.0f;
 			if (radius < 0.1f)
 				radius = 0.1f;
 			break;
 
-		case 'e': radius += 0.1f; break;
+		case 'q': radius += 1.0f; break;
 
 		case ' ': drawCurve = !drawCurve; break;
 	}
@@ -374,12 +373,12 @@ void processSpecialKeys(int key, int xx, int yy) {
 				beta = -1.5f;
 			break;
 
-		case GLUT_KEY_PAGE_DOWN: radius -= 1.0f;
+		case GLUT_KEY_PAGE_UP: radius -= 1.0f;
 			if (radius < 0.1f)
 				radius = 0.1f;
 			break;
 
-		case GLUT_KEY_PAGE_UP: radius += 1.0f; break;
+		case GLUT_KEY_PAGE_DOWN: radius += 1.0f; break;
 	}
 	
 	cameraX = radius * cos(beta) * sin(alfa);
@@ -390,56 +389,48 @@ void processSpecialKeys(int key, int xx, int yy) {
 }
 
 void processMouseButtons(int button, int state, int xx, int yy) {
-	
-	if (state == GLUT_DOWN)  {
-		startX = xx;
-		startY = yy;
-		if (button == GLUT_LEFT_BUTTON)
-			tracking = 1;
-		else if (button == GLUT_RIGHT_BUTTON)
-			tracking = 2;
-		else
-			tracking = 0;
-	}
-
-	else if (state == GLUT_UP) {
-		if (tracking == 1) {
-			alfa += (xx - startX);
-			beta += (yy - startY);
-		}
-		else if (tracking == 2) {
-			
-			radius -= yy - startY;
-			if (radius < 3)
-				radius = 3.0;
-		}
-		tracking = 0;
-	}
+    if (state == GLUT_DOWN) {
+        startX = xx;
+        startY = yy;
+        switch(button) {
+            case GLUT_LEFT_BUTTON:
+                tracking = 1;
+                break;
+            case GLUT_RIGHT_BUTTON:
+                tracking = 2;
+                break;
+            default:
+                tracking = 0;
+                break;
+        }
+    } else if (state == GLUT_UP) {
+        tracking = 0;
+    }
 }
 
 void processMouseMotion(int xx, int yy) {
-    int deltaX, deltaY;
+    if (tracking == 0) return;
 
-    if (!tracking) return;
-
-    deltaX = xx - startX;
-    deltaY = yy - startY;
+    int deltaX = xx - startX;
+    int deltaY = yy - startY;
 
     if (tracking == 1) {
-        alfa += deltaX * 0.0001;
-        beta += deltaY * 0.0001;
+        alfa += deltaX * 0.005f;
+        beta += deltaY * 0.005f;
 
-        if (beta > 85.0) beta = 85.0;
-        else if (beta < -85.0) beta = -85.0;
+        if (beta > 1.5f) beta = 1.5f;
+        else if (beta < -1.5f) beta = -1.5f;
     } else if (tracking == 2) {
-        radius -= deltaY * 0.1;
-        if (radius < 3) radius = 3;
+        radius -= deltaY * 0.1f;
+        if (radius < 3.0f) radius = 3.0f;
     }
 
-    cameraX = radius * cos(beta * M_PI / 180.0) * sin(alfa * M_PI / 180.0);
-    cameraY = radius * sin(beta * M_PI / 180.0);
-    cameraZ = radius * cos(beta * M_PI / 180.0) * cos(alfa * M_PI / 180.0);
+    cameraX = radius * cos(beta) * sin(alfa);
+    cameraY = radius * sin(beta);
+    cameraZ = radius * cos(beta) * cos(alfa);
 
+    startX = xx;
+    startY = yy;
     glutPostRedisplay();
 }
 
@@ -482,6 +473,10 @@ void parsePosition(std::string line) {
 		cameraY = std::stoi(yStr);
 		cameraZ = std::stoi(zStr);
 	}
+
+	radius = sqrt(cameraX*cameraX + cameraY*cameraY + cameraZ*cameraZ);
+	alfa = atan2(cameraX, cameraZ);
+	beta = atan2(cameraY, sqrt(cameraX*cameraX + cameraZ*cameraZ));
 }
 
 void parseLookAt(std::string line) {
