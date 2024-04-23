@@ -1,3 +1,4 @@
+
 #include <GL/glew.h>
 #include <GL/glut.h>
 
@@ -67,20 +68,6 @@ std::vector<Group> sceneGraph;
 std::stack<Group*> groupStack;
 std::map<std::string, Model> modelCache;
 
-void cross(float *a, float *b, float *res) {
-	res[0] = a[1]*b[2] - a[2]*b[1];
-	res[1] = a[2]*b[0] - a[0]*b[2];
-	res[2] = a[0]*b[1] - a[1]*b[0];
-}
-
-
-void normalize(float *a) {
-	float l = sqrt(a[0]*a[0] + a[1] * a[1] + a[2] * a[2]);
-	a[0] = a[0]/l;
-	a[1] = a[1]/l;
-	a[2] = a[2]/l;
-}
-
 void multiplyMatrices(GLfloat result[16], const GLfloat mat1[16], const GLfloat mat2[16]) {
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
@@ -92,37 +79,36 @@ void multiplyMatrices(GLfloat result[16], const GLfloat mat1[16], const GLfloat 
     }
 }
 
-void alignObject(const Point& direction) {
-	GLfloat up[3] = {0.0, 1.0, 0.0};
-	GLfloat forward[3] = {direction.x, direction.y, direction.z};
-	GLfloat right[3];
+void normalize(float v[3]) {
+	float l = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+	if (l > 0) {
+		v[0] /= l;
+		v[1] /= l;
+		v[2] /= l;
+	}
+}
 
-	normalize(forward);
-	cross(up, forward, right);
-	normalize(right);
+void cross(float v1[3], float v2[3], float res[3]) {
+	res[0] = v1[1]*v2[2] - v1[2]*v2[1];
+	res[1] = v1[2]*v2[0] - v1[0]*v2[2];
+	res[2] = v1[0]*v2[1] - v1[1]*v2[0];
+}
 
-	GLfloat newUp[3];
-	cross(forward, right, newUp);
+void alignObject(const Point& deriv) {
+	float up[3] = {0, 1, 0};
+	float x[3] = {deriv.x, deriv.y, deriv.z};
+	normalize(x);
+	float z[3];
+	cross(x, up, z);
+	normalize(z);
+	float y[3];
+	cross(z,x,y);
+	normalize(y);
+	memcpy(up, y, 3 * sizeof(float));
 
-	GLfloat rotMatrix[16] = {
-		right[0], right[1], right[2], 0,
-		newUp[0], newUp[1], newUp[2], 0,
-		forward[0], forward[1], forward[2], 0,
-		0, 0, 0, 1
-	};
+	float m[16] = {x[0], x[1], x[2], 0, y[0], y[1], y[2], 0, z[0], z[1], z[2], 0, 0, 0, 0, 1};
 
-	GLfloat rotMatrix2[16] = {
-		0, 0, 1, 0,
-		0, 1, 0, 0,
-		-1, 0, 0, 0,
-		0, 0, 0, 1
-	};
-
-	GLfloat resultMatrix[16];
-	multiplyMatrices(resultMatrix, rotMatrix, rotMatrix2);
-	memcpy(rotMatrix, resultMatrix, sizeof(resultMatrix));
-
-	glMultMatrixf(rotMatrix);
+	glMultMatrixf(m);
 }
 
 void multMatrixVector(float m[4][4], float *v, float *res) {
@@ -440,8 +426,8 @@ void processMouseMotion(int xx, int yy) {
     deltaY = yy - startY;
 
     if (tracking == 1) {
-        alfa += deltaX * 0.001;
-        beta += deltaY * 0.1;
+        alfa += deltaX * 0.0001;
+        beta += deltaY * 0.0001;
 
         if (beta > 85.0) beta = 85.0;
         else if (beta < -85.0) beta = -85.0;

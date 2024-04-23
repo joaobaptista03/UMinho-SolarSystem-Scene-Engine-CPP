@@ -19,7 +19,7 @@
 	<!--Mercury-->
 	<group>
 		<transform>
-			<translate time="8" align="true">
+			<translate time="8" align="false">
 				<point x="0" y="0" z="8" />
 				<point x="5.6" y="0" z="5.6" />
 				<point x="8" y="0" z="0" />
@@ -39,7 +39,7 @@
 	<!--Venus-->
 	<group>
 		<transform>
-			<translate time="10" align="true">
+			<translate time="10" align="false">
 				<point x="0" y="0" z="12" />
 				<point x="8.4" y="0" z="8.4" />
 				<point x="12" y="0" z="0" />
@@ -59,7 +59,7 @@
 	<!--Hearth and Moon-->
 	<group>
 		<transform>
-			<translate time="12" align="true">
+			<translate time="12" align="false">
 			    <point x="0" y="0" z="16" />
 			    <point x="11.2" y="0" z="11.2" />
 			    <point x="16" y="0" z="0" />
@@ -74,7 +74,7 @@
 		</transform>
 		<group>
 			<transform>	
-				<translate time="10" align="true">
+				<translate time="10" align="false">
 		 			<point x="0" y="0" z="2" />
 				    <point x="1.4" y="0" z="1.4" />
 				    <point x="2" y="0" z="0" />
@@ -97,7 +97,7 @@
 	<!--Mars-->
 	<group>
 		<transform>
-			<translate time="14" align="true">
+			<translate time="14" align="false">
 				<point x="0" y="0" z="20" />
 				<point x="14" y="0" z="14" />
 				<point x="20" y="0" z="0" />
@@ -117,7 +117,7 @@
 	<!--Jupiter-->
 	<group>
 		<transform>
-			<translate time="16" align="true">
+			<translate time="16" align="false">
 				<point x="0" y="0" z="24" />
 				<point x="16.8" y="0" z="16.8" />
 				<point x="24" y="0" z="0" />
@@ -137,7 +137,7 @@
 	<!--Saturn-->
 	<group>
 		<transform>
-			<translate time="18" align="true">
+			<translate time="18" align="false">
 				<point x="0" y="0" z="28" />
 				<point x="19.6" y="0" z="19.6" />
 				<point x="28" y="0" z="0" />
@@ -157,7 +157,7 @@
 	<!--Uranus-->
 	<group>
 		<transform>
-			<translate time="20" align="true">
+			<translate time="20" align="false">
 				<point x="0" y="0" z="32" />
 				<point x="22.4" y="0" z="22.4" />
 				<point x="32" y="0" z="0" />
@@ -177,7 +177,7 @@
 	<!--Neptune-->
 	<group>
 		<transform>
-			<translate time="22" align="true">
+			<translate time="22" align="false">
 				<point x="0" y="0" z="36" />
 				<point x="25.2" y="0" z="25.2" />
 				<point x="36" y="0" z="0" />
