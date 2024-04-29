@@ -24,3 +24,12 @@ Phase3/Generator/cone.o
 Phase3/Generator/bezier.o
 Phase3/Engine/build/*
 Phase3/Output/*
+Phase4/Generator/generator
+Phase4/Generator/main.o
+Phase4/Generator/box.o
+Phase4/Generator/plane.o
+Phase4/Generator/sphere.o
+Phase4/Generator/cone.o
+Phase4/Generator/bezier.o
+Phase4/Engine/build/*
+Phase4/Output/*
