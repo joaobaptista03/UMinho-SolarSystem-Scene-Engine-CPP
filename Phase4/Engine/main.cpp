@@ -871,8 +871,9 @@ void parseTexture(std::string line){
 		std::size_t fileEnd = line.find("\"", fileStart);
 
 		std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
-		group->textures.push_back("../Output/" + fileStr);
+		group->textures[group->modelcounter] = "../Output/" + fileStr;
 	}
+	group->modelcounter++;
 }
 
 void parseXML(std::ifstream& inputFile) {
@@ -914,6 +915,8 @@ void parseXML(std::ifstream& inputFile) {
 		else if (line.find("<emissive") != std::string::npos) parseEmissive(line);
 
 		else if (line.find("<shininess") != std::string::npos) parseShininess(line);
+
+		else if (line.find("<texture") != std::string::npos) parseTexture(line);
 	}
 }
 
