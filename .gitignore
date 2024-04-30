@@ -32,4 +32,3 @@ Phase4/Generator/sphere.o
 Phase4/Generator/cone.o
 Phase4/Generator/bezier.o
 Phase4/Engine/build/*
-Phase4/Output/*

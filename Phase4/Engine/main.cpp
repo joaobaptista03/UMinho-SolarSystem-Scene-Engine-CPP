@@ -46,16 +46,27 @@ struct Rotate {
     float timeOrAngle;
 };
 
+struct Color{
+	float diffuse[3];
+	float ambient[3];
+	float specular[3];
+	float emissive[3];
+	float shininess;
+};
+
 struct Group {
 	Translate translate;
 	Rotate rotate;
 	Scale scale;
 	char transformations[3] = {0, 0, 0};
-    bool hasTranslate = false, hasRotate = false, hasScale = false;
+    bool hasTranslate = false, hasRotate = false, hasScale = false, hasColor = false, hasTexture = false;
 	std::vector<std::string> models;
+	std::vector<Color> colors;
+	std::vector<std::string> textures;
 	std::vector<Group> subgroups;
 	Group *parent;
-	int counter = 0;
+	int transformcounter = 0;
+	int modelcounter = 0;
 };
 
 struct Model {
@@ -187,7 +198,7 @@ GLuint loadModelToVBO(const std::vector<float>& vertices) {
     return vboId;
 }
 
-void drawModel(const std::string& file) {
+void drawModel(const std::string& file, const Color& color) {
     if (modelCache.find(file) == modelCache.end()) {
         std::ifstream inputFile(file);
         if (!inputFile.is_open()) {
@@ -233,7 +244,7 @@ void drawModel(const std::string& file) {
 void drawGroup(const Group& group, float currentTime) {
     glPushMatrix();
 
-	for (int i = 0; i < group.counter; i++) {
+	for (int i = 0; i < group.transformcounter; i++) {
 		if (group.transformations[i] == 't') {
 			if (!group.translate.isCatmullRom)
 				glTranslatef(group.translate.point.x, group.translate.point.y, group.translate.point.z);
@@ -259,8 +270,9 @@ void drawGroup(const Group& group, float currentTime) {
 		}
 	}
 
+	int modelCounter = 0;
 
-    for (const std::string& modelFile : group.models) drawModel(modelFile);
+    for (const std::string& modelFile : group.models) drawModel(modelFile, group.colors[modelCounter++]);
 
     for (const Group& subgroup : group.subgroups) drawGroup(subgroup, currentTime);
 
@@ -593,7 +605,7 @@ void parseTranslate(std::string line) {
 		group->translate.point.x = std::stof(xStr);
 		group->translate.point.y = std::stof(yStr);
 		group->translate.point.z = std::stof(zStr);
-		group->transformations[group->counter++] = 't';
+		group->transformations[group->transformcounter++] = 't';
 	}
 
 	if (timePos != std::string::npos) {
@@ -602,7 +614,7 @@ void parseTranslate(std::string line) {
 
 		std::string timeStr = line.substr(timeStart, timeEnd - timeStart);
 		group->translate.time = std::stof(timeStr);
-		group->transformations[group->counter++] = 't';
+		group->transformations[group->transformcounter++] = 't';
 		group->translate.isCatmullRom = true;
 	}
 
@@ -641,7 +653,7 @@ void parseRotate(std::string line) {
 		group->rotate.point.x = std::stof(xStr);
 		group->rotate.point.y = std::stof(yStr);
 		group->rotate.point.z = std::stof(zStr);
-		group->transformations[group->counter++] = 'r';
+		group->transformations[group->transformcounter++] = 'r';
 	}
 
 	if (anglePos != std::string::npos) {
@@ -711,7 +723,7 @@ void parseScale(std::string line) {
 		group->scale.point.x = std::stof(xStr);
 		group->scale.point.y = std::stof(yStr);
 		group->scale.point.z = std::stof(zStr);
-		group->transformations[group->counter++] = 's';
+		group->transformations[group->transformcounter++] = 's';
 	}
 }
 
@@ -724,6 +736,142 @@ void parseModel(std::string line) {
 
 		std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
 		groupStack.top()->models.push_back("../Output/" + fileStr);
+	}
+}
+
+void parseDiffuse(std::string line){
+	Group* group = groupStack.top();
+
+	group->hasColor = true;
+	std::size_t rPos = line.find("R=");
+	std::size_t gPos = line.find("G=");
+	std::size_t bPos = line.find("B=");
+
+	if (rPos != std::string::npos && gPos != std::string::npos && bPos != std::string::npos) {
+		std::size_t rStart = line.find("\"", rPos) + 1;
+		std::size_t rEnd = line.find("\"", rStart);
+		std::size_t gStart = line.find("\"", gPos) + 1;
+		std::size_t gEnd = line.find("\"", gStart);
+		std::size_t bStart = line.find("\"", bPos) + 1;
+		std::size_t bEnd = line.find("\"", bStart);
+
+		std::string rStr = line.substr(rStart, rEnd - rStart);
+		std::string gStr = line.substr(gStart, gEnd - gStart);
+		std::string bStr = line.substr(bStart, bEnd - bStart);
+
+		group->colors[group->modelcounter].diffuse[0] = std::stof(rStr);
+		group->colors[group->modelcounter].diffuse[1] = std::stof(gStr);
+		group->colors[group->modelcounter].diffuse[2] = std::stof(bStr);
+	}
+	group->modelcounter;
+}
+
+void parseAmbient(std::string line){
+	Group* group = groupStack.top();
+
+	group->hasColor = true;
+	std::size_t rPos = line.find("R=");
+	std::size_t gPos = line.find("G=");
+	std::size_t bPos = line.find("B=");
+
+	if (rPos != std::string::npos && gPos != std::string::npos && bPos != std::string::npos) {
+		std::size_t rStart = line.find("\"", rPos) + 1;
+		std::size_t rEnd = line.find("\"", rStart);
+		std::size_t gStart = line.find("\"", gPos) + 1;
+		std::size_t gEnd = line.find("\"", gStart);
+		std::size_t bStart = line.find("\"", bPos) + 1;
+		std::size_t bEnd = line.find("\"", bStart);
+
+		std::string rStr = line.substr(rStart, rEnd - rStart);
+		std::string gStr = line.substr(gStart, gEnd - gStart);
+		std::string bStr = line.substr(bStart, bEnd - bStart);
+
+		group->colors[group->modelcounter].ambient[0] = std::stof(rStr);
+		group->colors[group->modelcounter].ambient[1] = std::stof(gStr);
+		group->colors[group->modelcounter].ambient[2] = std::stof(bStr);
+	}
+}
+
+void parseSpecular(std::string line){
+	Group* group = groupStack.top();
+
+	group->hasColor = true;
+	std::size_t rPos = line.find("R=");
+	std::size_t gPos = line.find("G=");
+	std::size_t bPos = line.find("B=");
+
+	if (rPos != std::string::npos && gPos != std::string::npos && bPos != std::string::npos) {
+		std::size_t rStart = line.find("\"", rPos) + 1;
+		std::size_t rEnd = line.find("\"", rStart);
+		std::size_t gStart = line.find("\"", gPos) + 1;
+		std::size_t gEnd = line.find("\"", gStart);
+		std::size_t bStart = line.find("\"", bPos) + 1;
+		std::size_t bEnd = line.find("\"", bStart);
+
+		std::string rStr = line.substr(rStart, rEnd - rStart);
+		std::string gStr = line.substr(gStart, gEnd - gStart);
+		std::string bStr = line.substr(bStart, bEnd - bStart);
+
+		group->colors[group->modelcounter].specular[0] = std::stof(rStr);
+		group->colors[group->modelcounter].specular[1] = std::stof(gStr);
+		group->colors[group->modelcounter].specular[2] = std::stof(bStr);
+	}
+}
+
+void parseEmissive(std::string line){
+	Group* group = groupStack.top();
+
+	group->hasColor = true;
+	std::size_t rPos = line.find("R=");
+	std::size_t gPos = line.find("G=");
+	std::size_t bPos = line.find("B=");
+
+	if (rPos != std::string::npos && gPos != std::string::npos && bPos != std::string::npos) {
+		std::size_t rStart = line.find("\"", rPos) + 1;
+		std::size_t rEnd = line.find("\"", rStart);
+		std::size_t gStart = line.find("\"", gPos) + 1;
+		std::size_t gEnd = line.find("\"", gStart);
+		std::size_t bStart = line.find("\"", bPos) + 1;
+		std::size_t bEnd = line.find("\"", bStart);
+
+		std::string rStr = line.substr(rStart, rEnd - rStart);
+		std::string gStr = line.substr(gStart, gEnd - gStart);
+		std::string bStr = line.substr(bStart, bEnd - bStart);
+
+		group->colors[group->modelcounter].emissive[0] = std::stof(rStr);
+		group->colors[group->modelcounter].emissive[1] = std::stof(gStr);
+		group->colors[group->modelcounter].emissive[2] = std::stof(bStr);
+	}
+}
+
+void parseShininess(std::string line){
+	Group* group = groupStack.top();
+
+	group->hasColor = true;
+	std::size_t shininessPos = line.find("value=");
+
+	if (shininessPos != std::string::npos) {
+		std::size_t shininessStart = line.find("\"", shininessPos) + 1;
+		std::size_t shininessEnd = line.find("\"", shininessStart);
+
+		std::string shininessStr = line.substr(shininessStart, shininessEnd - shininessStart);
+		group->colors[group->modelcounter].shininess = std::stof(shininessStr);
+	}
+	group->modelcounter++;
+}
+
+void parseTexture(std::string line){
+	Group* group = groupStack.top();
+
+	group->hasTexture = true;
+	std::size_t filePos = line.find("file=");
+
+	if (filePos != std::string::npos) {
+		std::size_t fileStart = line.find("\"", filePos) + 1;
+		std::size_t fileEnd = line.find("\"", fileStart);
+
+		std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
+		group->textures.push_back("../Output/" + fileStr);
 	}
 }
 
@@ -756,6 +904,16 @@ void parseXML(std::ifstream& inputFile) {
 		else if (line.find("<scale") != std::string::npos) parseScale(line);
 
 		else if (line.find("<model") != std::string::npos) parseModel(line);
+
+		else if (line.find("<diffuse") != std::string::npos) parseDiffuse(line);
+
+		else if (line.find("<ambient") != std::string::npos) parseAmbient(line);
+
+		else if (line.find("<specular") != std::string::npos) parseSpecular(line);
+
+		else if (line.find("<emissive") != std::string::npos) parseEmissive(line);
+
+		else if (line.find("<shininess") != std::string::npos) parseShininess(line);
 	}
 }
 
