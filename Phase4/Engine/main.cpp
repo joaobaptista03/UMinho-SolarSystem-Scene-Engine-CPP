@@ -46,8 +46,8 @@ struct Rotate {
     float timeOrAngle;
 };
 
-struct ColorOrTexture{
-	bool texture = false;
+struct ColorOrTexture {
+	bool isTexture = false;
 	std::string texture;
 	float diffuse[3];
 	float ambient[3];
@@ -56,14 +56,19 @@ struct ColorOrTexture{
 	float shininess;
 };
 
+struct ParsedModel {
+	std::string model;
+	bool hasColorOrTexture = false;
+	ColorOrTexture colorOrTexture;
+};
+
 struct Group {
 	Translate translate;
 	Rotate rotate;
 	Scale scale;
 	char transformations[3] = {0, 0, 0};
     bool hasTranslate = false, hasRotate = false, hasScale = false, hasColor = false, hasTexture = false;
-	std::vector<std::string> models;
-	std::vector<ColorOrTexture> colorsOrTextures;
+	std::vector<ParsedModel> models;
 	std::vector<Group> subgroups;
 	Group *parent;
 	int transformcounter = 0;
@@ -198,11 +203,11 @@ GLuint loadModelToVBO(const std::vector<float>& vertices) {
     return vboId;
 }
 
-void drawModel(const std::string& file, const ColorOrTexture& color) {
-    if (modelCache.find(file) == modelCache.end()) {
-        std::ifstream inputFile(file);
+void drawModel(ParsedModel modelParsed) {
+    if (modelCache.find(modelParsed.model) == modelCache.end()) {
+        std::ifstream inputFile(modelParsed.model);
         if (!inputFile.is_open()) {
-            std::cerr << "Failed to open file: " << file << "\n";
+            std::cerr << "Failed to open file: " << modelParsed.model << "\n";
             return;
         }
         
@@ -227,10 +232,25 @@ void drawModel(const std::string& file, const ColorOrTexture& color) {
         Model model;
         model.numVertices = vertices.size() / 3;
         model.vboId = loadModelToVBO(vertices);
-        modelCache[file] = model;
+        modelCache[modelParsed.model] = model;
     }
 
-    Model& model = modelCache[file];
+    Model& model = modelCache[modelParsed.model];
+
+	bool hasColorOrTexture = modelParsed.hasColorOrTexture;
+	ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
+	if (hasColorOrTexture) {
+		if (colorOrTexture.isTexture) {
+			// texture
+		} else {
+			glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
+			glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
+			glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
+			glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
+			glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
+		}
+	}
+
     glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, 0, nullptr);
@@ -239,6 +259,19 @@ void drawModel(const std::string& file, const ColorOrTexture& color) {
     glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // Reset material properties
+    GLfloat defaultDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
+    GLfloat defaultAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
+    GLfloat defaultSpecular[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    GLfloat defaultEmissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    GLfloat defaultShininess = 0.0f;
+
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, defaultDiffuse);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, defaultAmbient);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, defaultSpecular);
+    glMaterialfv(GL_FRONT, GL_EMISSION, defaultEmissive);
+    glMaterialf(GL_FRONT, GL_SHININESS, defaultShininess);
 }
 
 void drawGroup(const Group& group, float currentTime) {
@@ -272,7 +305,7 @@ void drawGroup(const Group& group, float currentTime) {
 
 	int modelCounter = 0;
 
-    for (const std::string& modelFile : group.models) drawModel(modelFile, group.colorsOrTextures[modelCounter++]);
+    for (const ParsedModel modelParsed : group.models) drawModel(modelParsed);
 
     for (const Group& subgroup : group.subgroups) drawGroup(subgroup, currentTime);
 
@@ -283,7 +316,8 @@ void printGroup(const Group& group, int level) {
 	for (int i = 0; i < level; ++i) std::cout << "  ";
 	std::cout << "Group\n";
 
-	for (const std::string& model : group.models) {
+	for (const ParsedModel modelParsed : group.models) {
+		std::string model = modelParsed.model;
 		for (int i = 0; i < level; ++i) std::cout << "  ";
 		std::cout << "  Model: " << model << "\n";
 	}
@@ -747,15 +781,14 @@ void parseModel(std::string line) {
 		std::size_t fileEnd = line.find("\"", fileStart);
 
 		std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
-		groupStack.top()->models.push_back("../Output/" + fileStr);
+		ParsedModel modelParsed;
+		modelParsed.model = "../Output/" + fileStr;
+		groupStack.top()->models.push_back(modelParsed);
 	}
 }
 
-void parseDiffuse(std::string line){
+void parseDiffuse(std::string line) {
 	Group* group = groupStack.top();
-
-
-	group->hasColor = true;
 
 	std::size_t rPos = line.find("R=");
 	std::size_t gPos = line.find("G=");
@@ -773,19 +806,16 @@ void parseDiffuse(std::string line){
 		std::string gStr = line.substr(gStart, gEnd - gStart);
 		std::string bStr = line.substr(bStart, bEnd - bStart);
 
-		Color color;
-		color.diffuse[0] = std::stof(rStr);
-		color.diffuse[1] = std::stof(gStr);
-		color.diffuse[2] = std::stof(bStr);
-
-		group->colors.push_back(color);
+		group->models.back().hasColorOrTexture = true;
+		group->models.back().colorOrTexture.diffuse[0] = std::stof(rStr);
+		group->models.back().colorOrTexture.diffuse[1] = std::stof(gStr);
+		group->models.back().colorOrTexture.diffuse[2] = std::stof(bStr);
 	}
 }
 
-void parseAmbient(std::string line){
+void parseAmbient(std::string line) {
 	Group* group = groupStack.top();
 
-	group->hasColor = true;
 	std::size_t rPos = line.find("R=");
 	std::size_t gPos = line.find("G=");
 	std::size_t bPos = line.find("B=");
@@ -802,16 +832,16 @@ void parseAmbient(std::string line){
 		std::string gStr = line.substr(gStart, gEnd - gStart);
 		std::string bStr = line.substr(bStart, bEnd - bStart);
 
-		group->colors[group->modelcounter].ambient[0] = std::stof(rStr);
-		group->colors[group->modelcounter].ambient[1] = std::stof(gStr);
-		group->colors[group->modelcounter].ambient[2] = std::stof(bStr);
+		group->models.back().hasColorOrTexture = true;
+		group->models.back().colorOrTexture.ambient[0] = std::stof(rStr);
+		group->models.back().colorOrTexture.ambient[1] = std::stof(gStr);
+		group->models.back().colorOrTexture.ambient[2] = std::stof(bStr);
 	}
 }
 
-void parseSpecular(std::string line){
+void parseSpecular(std::string line) {
 	Group* group = groupStack.top();
 
-	group->hasColor = true;
 	std::size_t rPos = line.find("R=");
 	std::size_t gPos = line.find("G=");
 	std::size_t bPos = line.find("B=");
@@ -828,16 +858,16 @@ void parseSpecular(std::string line){
 		std::string gStr = line.substr(gStart, gEnd - gStart);
 		std::string bStr = line.substr(bStart, bEnd - bStart);
 
-		group->colors[group->modelcounter].specular[0] = std::stof(rStr);
-		group->colors[group->modelcounter].specular[1] = std::stof(gStr);
-		group->colors[group->modelcounter].specular[2] = std::stof(bStr);
+		group->models.back().hasColorOrTexture = true;
+		group->models.back().colorOrTexture.specular[0] = std::stof(rStr);
+		group->models.back().colorOrTexture.specular[1] = std::stof(gStr);
+		group->models.back().colorOrTexture.specular[2] = std::stof(bStr);
 	}
 }
 
-void parseEmissive(std::string line){
+void parseEmissive(std::string line) {
 	Group* group = groupStack.top();
 
-	group->hasColor = true;
 	std::size_t rPos = line.find("R=");
 	std::size_t gPos = line.find("G=");
 	std::size_t bPos = line.find("B=");
@@ -854,16 +884,16 @@ void parseEmissive(std::string line){
 		std::string gStr = line.substr(gStart, gEnd - gStart);
 		std::string bStr = line.substr(bStart, bEnd - bStart);
 
-		group->colors[group->modelcounter].emissive[0] = std::stof(rStr);
-		group->colors[group->modelcounter].emissive[1] = std::stof(gStr);
-		group->colors[group->modelcounter].emissive[2] = std::stof(bStr);
+		group->models.back().hasColorOrTexture = true;
+		group->models.back().colorOrTexture.emissive[0] = std::stof(rStr);
+		group->models.back().colorOrTexture.emissive[1] = std::stof(gStr);
+		group->models.back().colorOrTexture.emissive[2] = std::stof(bStr);
 	}
 }
 
-void parseShininess(std::string line){
+void parseShininess(std::string line) {
 	Group* group = groupStack.top();
 
-	group->hasColor = true;
 	std::size_t shininessPos = line.find("value=");
 
 	if (shininessPos != std::string::npos) {
@@ -871,15 +901,14 @@ void parseShininess(std::string line){
 		std::size_t shininessEnd = line.find("\"", shininessStart);
 
 		std::string shininessStr = line.substr(shininessStart, shininessEnd - shininessStart);
-		group->colors[group->modelcounter].shininess = std::stof(shininessStr);
+		group->models.back().hasColorOrTexture = true;
+		group->models.back().colorOrTexture.shininess = std::stof(shininessStr);
 	}
-	group->modelcounter++;
 }
 
-void parseTexture(std::string line){
+void parseTexture(std::string line) {
 	Group* group = groupStack.top();
 
-	group->hasTexture = true;
 	std::size_t filePos = line.find("file=");
 
 	if (filePos != std::string::npos) {
@@ -887,9 +916,9 @@ void parseTexture(std::string line){
 		std::size_t fileEnd = line.find("\"", fileStart);
 
 		std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
-		group->textures[group->modelcounter] = "../Output/" + fileStr;
+		group->models.back().hasColorOrTexture = true;
+		group->models.back().colorOrTexture.isTexture = true;
 	}
-	group->modelcounter++;
 }
 
 void parseXML(std::ifstream& inputFile) {
@@ -934,50 +963,6 @@ void parseXML(std::ifstream& inputFile) {
 
 		else if (line.find("<texture") != std::string::npos) parseTexture(line);
 	}
-}
-
-void printGroupDetails(const Group& group) {
-    std::cout << "Group Details:" << std::endl;
-    if (group.hasTranslate) {
-        std::cout << "  Translation: (" << group.translate.point.x << ", "
-                  << group.translate.point.y << ", " << group.translate.point.z << ")" << std::endl;
-    }
-    if (group.hasRotate) {
-        std::cout << "  Rotation: Axis(" << group.rotate.point.x << ", "
-                  << group.rotate.point.y << ", " << group.rotate.point.z
-                  << "), Angle/Time: " << group.rotate.timeOrAngle << std::endl;
-    }
-    if (group.hasScale) {
-        std::cout << "  Scale: (" << group.scale.point.x << ", "
-                  << group.scale.point.y << ", " << group.scale.point.z << ")" << std::endl;
-    }
-    if (!group.models.empty()) {
-        std::cout << "  Models:" << std::endl;
-        for (const auto& model : group.models) {
-            std::cout << "    " << model << std::endl;
-        }
-    }
-    std::cout << "  Number of subgroups: " << group.subgroups.size() << std::endl;
-}
-
-// Function to print the entire stack of groups
-void printAll(std::stack<Group*> groupStack) {
-    if (groupStack.empty()) {
-        std::cout << "The group stack is empty." << std::endl;
-        return;
-    }
-
-    std::cout << "Printing group stack:" << std::endl;
-    std::vector<Group*> groups;
-    while (!groupStack.empty()) {
-        groups.push_back(groupStack.top());
-        groupStack.pop();
-    }
-
-    // Reverse the order to print from bottom to top
-    for (auto it = groups.rbegin(); it != groups.rend(); ++it) {
-        printGroupDetails(**it);
-    }
 }
 
 int main(int argc, char *argv[]) {
