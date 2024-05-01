@@ -79,9 +79,17 @@ struct Model {
     int numVertices;
 };
 
+struct Light {
+	std::string type;
+	Point position;
+	Point direction;
+	float cutoff;
+};
+
 std::vector<Group> sceneGraph;
 std::stack<Group*> groupStack;
 std::map<std::string, Model> modelCache;
+std::vector<Light> lights;
 
 void multiplyMatrices(GLfloat result[16], const GLfloat mat1[16], const GLfloat mat2[16]) {
     for (int i = 0; i < 4; ++i) {
@@ -241,7 +249,7 @@ void drawModel(ParsedModel modelParsed) {
 	ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
 	if (hasColorOrTexture) {
 		if (colorOrTexture.isTexture) {
-			// texture
+			// TODO texture
 		} else {
 			glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
 			glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
@@ -261,17 +269,23 @@ void drawModel(ParsedModel modelParsed) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Reset material properties
-    GLfloat defaultDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
-    GLfloat defaultAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
-    GLfloat defaultSpecular[] = {0.0f, 0.0f, 0.0f, 1.0f};
-    GLfloat defaultEmissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
-    GLfloat defaultShininess = 0.0f;
+	if (hasColorOrTexture) {
+		if (colorOrTexture.isTexture) {
+			// TODO texture
+		} else {
+			GLfloat defaultDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
+			GLfloat defaultAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
+			GLfloat defaultSpecular[] = {0.0f, 0.0f, 0.0f, 1.0f};
+			GLfloat defaultEmissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
+			GLfloat defaultShininess = 0.0f;
 
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, defaultDiffuse);
-    glMaterialfv(GL_FRONT, GL_AMBIENT, defaultAmbient);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, defaultSpecular);
-    glMaterialfv(GL_FRONT, GL_EMISSION, defaultEmissive);
-    glMaterialf(GL_FRONT, GL_SHININESS, defaultShininess);
+			glMaterialfv(GL_FRONT, GL_DIFFUSE, defaultDiffuse);
+			glMaterialfv(GL_FRONT, GL_AMBIENT, defaultAmbient);
+			glMaterialfv(GL_FRONT, GL_SPECULAR, defaultSpecular);
+			glMaterialfv(GL_FRONT, GL_EMISSION, defaultEmissive);
+			glMaterialf(GL_FRONT, GL_SHININESS, defaultShininess);
+		}
+	}
 }
 
 void drawGroup(const Group& group, float currentTime) {
@@ -921,48 +935,190 @@ void parseTexture(std::string line) {
 	}
 }
 
+void parseLight(std::string line) {
+	Light light;
+
+	std::size_t typePos = line.find("type=");
+
+	if (typePos != std::string::npos) {
+		std::size_t typeStart = line.find("\"", typePos) + 1;
+		std::size_t typeEnd = line.find("\"", typeStart);
+
+		std::string typeStr = line.substr(typeStart, typeEnd - typeStart);
+		light.type = typeStr;
+	}
+
+	if (light.type == "directional") {
+		std::size_t xDir = line.find("dirx=");
+		std::size_t yDir = line.find("diry=");
+		std::size_t zDir = line.find("dirz=");
+		
+		if (xDir != std::string::npos && yDir != std::string::npos && zDir != std::string::npos) {
+			std::size_t xStart = line.find("\"", xDir) + 1;
+			std::size_t xEnd = line.find("\"", xStart);
+			std::size_t yStart = line.find("\"", yDir) + 1;
+			std::size_t yEnd = line.find("\"", yStart);
+			std::size_t zStart = line.find("\"", zDir) + 1;
+			std::size_t zEnd = line.find("\"", zStart);
+
+			std::string xStr = line.substr(xStart, xEnd - xStart);
+			std::string yStr = line.substr(yStart, yEnd - yStart);
+			std::string zStr = line.substr(zStart, zEnd - zStart);
+
+			light.direction.x = std::stof(xStr);
+			light.direction.y = std::stof(yStr);
+			light.direction.z = std::stof(zStr);
+		}
+
+	} else if (light.type == "point") {
+		std::size_t xPos = line.find("posx=");
+		std::size_t yPos = line.find("posy=");
+		std::size_t zPos = line.find("posz=");
+		
+		if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+			std::size_t xStart = line.find("\"", xPos) + 1;
+			std::size_t xEnd = line.find("\"", xStart);
+			std::size_t yStart = line.find("\"", yPos) + 1;
+			std::size_t yEnd = line.find("\"", yStart);
+			std::size_t zStart = line.find("\"", zPos) + 1;
+			std::size_t zEnd = line.find("\"", zStart);
+
+			std::string xStr = line.substr(xStart, xEnd - xStart);
+			std::string yStr = line.substr(yStart, yEnd - yStart);
+			std::string zStr = line.substr(zStart, zEnd - zStart);
+
+			light.position.x = std::stof(xStr);
+			light.position.y = std::stof(yStr);
+			light.position.z = std::stof(zStr);
+		}
+
+	} else if (light.type == "spot") {
+		std::size_t xPos = line.find("posx=");
+		std::size_t yPos = line.find("posy=");
+		std::size_t zPos = line.find("posz=");
+		std::size_t xDir = line.find("dirx=");
+		std::size_t yDir = line.find("diry=");
+		std::size_t zDir = line.find("dirz=");
+		std::size_t cutoff = line.find("cutoff=");
+
+		if (xPos != std::string::npos && yPos != std::string::npos && zPos != std::string::npos) {
+			std::size_t xStart = line.find("\"", xPos) + 1;
+			std::size_t xEnd = line.find("\"", xStart);
+			std::size_t yStart = line.find("\"", yPos) + 1;
+			std::size_t yEnd = line.find("\"", yStart);
+			std::size_t zStart = line.find("\"", zPos) + 1;
+			std::size_t zEnd = line.find("\"", zStart);
+
+			std::string xStr = line.substr(xStart, xEnd - xStart);
+			std::string yStr = line.substr(yStart, yEnd - yStart);
+			std::string zStr = line.substr(zStart, zEnd - zStart);
+
+			light.position.x = std::stof(xStr);
+			light.position.y = std::stof(yStr);
+			light.position.z = std::stof(zStr);
+		}
+
+		if (xDir != std::string::npos && yDir != std::string::npos && zDir != std::string::npos) {
+			std::size_t xStart = line.find("\"", xDir) + 1;
+			std::size_t xEnd = line.find("\"", xStart);
+			std::size_t yStart = line.find("\"", yDir) + 1;
+			std::size_t yEnd = line.find("\"", yStart);
+			std::size_t zStart = line.find("\"", zDir) + 1;
+			std::size_t zEnd = line.find("\"", zStart);
+
+			std::string xStr = line.substr(xStart, xEnd - xStart);
+			std::string yStr = line.substr(yStart, yEnd - yStart);
+			std::string zStr = line.substr(zStart, zEnd - zStart);
+
+			light.direction.x = std::stof(xStr);
+			light.direction.y = std::stof(yStr);
+			light.direction.z = std::stof(zStr);
+		}
+
+		if (cutoff != std::string::npos) {
+			std::size_t cutoffStart = line.find("\"", cutoff) + 1;
+			std::size_t cutoffEnd = line.find("\"", cutoffStart);
+
+			std::string cutoffStr = line.substr(cutoffStart, cutoffEnd - cutoffStart);
+			light.cutoff = std::stof(cutoffStr);
+		}
+	}
+	
+	lights.push_back(light);
+}
+
 void parseXML(std::ifstream& inputFile) {
 	std::string line;
 	while (std::getline(inputFile, line)) {
 		std::regex cleanSpaces("\\s*=\\s*");
 		line = std::regex_replace(line, cleanSpaces, "=");
 
-		if (line.find("<window") != std::string::npos) parseWindow(line);
+		if (line.find("<window ") != std::string::npos) parseWindow(line);
 
-		else if (line.find("<position") != std::string::npos) parsePosition(line);
+		else if (line.find("<position ") != std::string::npos) parsePosition(line);
 		
-		else if (line.find("<lookAt") != std::string::npos) parseLookAt(line);
+		else if (line.find("<lookAt ") != std::string::npos) parseLookAt(line);
 
-		else if (line.find("<up") != std::string::npos) parseUp(line);
+		else if (line.find("<up ") != std::string::npos) parseUp(line);
 
-		else if (line.find("<projection") != std::string::npos) parseProjection(line);
+		else if (line.find("<projection ") != std::string::npos) parseProjection(line);
 		
-		else if (line.find("<group") != std::string::npos) parseGroup(line, true);
+		else if (line.find("<group>") != std::string::npos) parseGroup(line, true);
 
-		else if (line.find("</group") != std::string::npos) parseGroup(line, false);
+		else if (line.find("</group>") != std::string::npos) parseGroup(line, false);
 
-		else if (line.find("<translate") != std::string::npos) parseTranslate(line);
+		else if (line.find("<translate ") != std::string::npos) parseTranslate(line);
 
-		else if (line.find("<rotate") != std::string::npos) parseRotate(line);
+		else if (line.find("<rotate ") != std::string::npos) parseRotate(line);
 
-		else if (line.find("<point") != std::string::npos) parsePoint(line);
+		else if (line.find("<point ") != std::string::npos) parsePoint(line);
 
-		else if (line.find("<scale") != std::string::npos) parseScale(line);
+		else if (line.find("<scale ") != std::string::npos) parseScale(line);
 
-		else if (line.find("<model") != std::string::npos) parseModel(line);
+		else if (line.find("<model ") != std::string::npos) parseModel(line);
 
-		else if (line.find("<diffuse") != std::string::npos) parseDiffuse(line);
+		else if (line.find("<diffuse ") != std::string::npos) parseDiffuse(line);
 
-		else if (line.find("<ambient") != std::string::npos) parseAmbient(line);
+		else if (line.find("<ambient ") != std::string::npos) parseAmbient(line);
 
-		else if (line.find("<specular") != std::string::npos) parseSpecular(line);
+		else if (line.find("<specular ") != std::string::npos) parseSpecular(line);
 
-		else if (line.find("<emissive") != std::string::npos) parseEmissive(line);
+		else if (line.find("<emissive ") != std::string::npos) parseEmissive(line);
 
-		else if (line.find("<shininess") != std::string::npos) parseShininess(line);
+		else if (line.find("<shininess ") != std::string::npos) parseShininess(line);
 
-		else if (line.find("<texture") != std::string::npos) parseTexture(line);
+		else if (line.find("<texture ") != std::string::npos) parseTexture(line);
+
+		else if (line.find("<light ") != std::string::npos) parseLight(line);
 	}
+}
+
+void enableLights() {
+    glEnable(GL_LIGHTING);
+    for (int i = 0; i < lights.size(); i++) {
+        glEnable(GL_LIGHT0 + i);
+
+		GLfloat dark[4] = {0.2,0.2,0.2,1.0};
+		GLfloat white[4] = {1.0,1.0,1.0,1.0};
+
+		glLightfv(GL_LIGHT0 + i, GL_AMBIENT, dark);
+		glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, white);
+		glLightfv(GL_LIGHT0 + i, GL_SPECULAR, white);
+
+        if (lights[i].type == "directional") {
+            float lightDir[4] = {lights[i].direction.x, lights[i].direction.y, lights[i].direction.z, 0.0};
+            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightDir);
+        } else if (lights[i].type == "point") {
+            float lightPos[4] = {lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.0};
+            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightPos);
+        } else if (lights[i].type == "spot") {
+            float lightPos[4] = {lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.0};
+            float lightDir[4] = {lights[i].direction.x, lights[i].direction.y, lights[i].direction.z, 0.0};
+            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightPos);
+            glLightfv(GL_LIGHT0 + i, GL_SPOT_DIRECTION, lightDir);
+            glLightf(GL_LIGHT0 + i, GL_SPOT_CUTOFF, lights[i].cutoff);
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -981,7 +1137,7 @@ int main(int argc, char *argv[]) {
 
 	parseXML(inputFile);
 
-	//printAll(groupStack);
+	enableLights();
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA);
