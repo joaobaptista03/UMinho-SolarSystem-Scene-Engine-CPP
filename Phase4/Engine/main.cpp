@@ -1137,8 +1137,6 @@ int main(int argc, char *argv[]) {
 
 	parseXML(inputFile);
 
-	enableLights();
-
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH|GLUT_DOUBLE|GLUT_RGBA);
 	glutInitWindowPosition(100,100);
@@ -1161,7 +1159,9 @@ int main(int argc, char *argv[]) {
 
 	glutIdleFunc(renderScene);
 
+	enableLights();
 	glutMainLoop();
+
 
 	inputFile.close();
 
