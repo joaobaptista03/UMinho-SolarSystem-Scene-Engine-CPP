@@ -56,18 +56,29 @@ void generateSphere(const std::string &fileName, float radius, int slices, int s
             Point normal3 = points[bottomRight];
             Point normal4 = points[topRight];
 
+            // Normalize the normals
+            auto normalize = [](const Point& p) -> Point {
+                float length = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+                return {p.x / length, p.y / length, p.z / length};
+            };
+
+            normal1 = normalize(normal1);
+            normal2 = normalize(normal2);
+            normal3 = normalize(normal3);
+            normal4 = normalize(normal4);
+
             // Write first triangle
-            outFile << "n: " << normal1.x / radius << "," << normal1.y / radius << "," << normal1.z / radius << "\n";
-            outFile << "n: " << normal2.x / radius << "," << normal2.y / radius << "," << normal2.z / radius << "\n";
-            outFile << "n: " << normal3.x / radius << "," << normal3.y / radius << "," << normal3.z / radius << "\n";
+            outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << "\n";
+            outFile << "n: " << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
+            outFile << "n: " << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
             outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                     << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " "
                     << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
 
             // Write second triangle
-            outFile << "n: " << normal1.x / radius << "," << normal1.y / radius << "," << normal1.z / radius << "\n";
-            outFile << "n: " << normal3.x / radius << "," << normal3.y / radius << "," << normal3.z / radius << "\n";
-            outFile << "n: " << normal4.x / radius << "," << normal4.y / radius << "," << normal4.z / radius << "\n";
+            outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << "\n";
+            outFile << "n: " << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+            outFile << "n: " << normal4.x << "," << normal4.y << "," << normal4.z << "\n";
             outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                     << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " "
                     << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";

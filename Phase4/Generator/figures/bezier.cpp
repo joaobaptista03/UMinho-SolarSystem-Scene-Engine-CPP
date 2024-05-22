@@ -9,6 +9,7 @@
 #include <iterator>
 #include <limits>
 #include <cmath>
+#include <cfloat> // For FLT_MAX
 
 struct Point {
     float x, y, z;
@@ -102,6 +103,11 @@ Point normalize(const Point& p) {
     return {p.x / length, p.y / length, p.z / length};
 }
 
+// Check if a point has NaN values
+bool isNaN(const Point& p) {
+    return std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z);
+}
+
 // Write the Bezier patch to a file
 void writeBezierPatch(const std::string& filename, const std::vector<std::vector<int>>& patches, const std::vector<Point>& controlPoints, int tessellation) {
     std::ofstream outFile("../Output/" + filename);
@@ -132,21 +138,24 @@ void writeBezierPatch(const std::string& filename, const std::vector<std::vector
                 Point tangentU1 = bezierPatchTangentU(patchPoints, 3, u, v);
                 Point tangentV1 = bezierPatchTangentV(patchPoints, 3, u, v);
                 Point normal1 = normalize(crossProduct(tangentU1, tangentV1));
+                if (isNaN(normal1)) normal1 = {0.0f, 0.0f, 1.0f};  // Fallback normal
 
                 Point tangentU2 = bezierPatchTangentU(patchPoints, 3, u, v_next);
                 Point tangentV2 = bezierPatchTangentV(patchPoints, 3, u, v_next);
                 Point normal2 = normalize(crossProduct(tangentU2, tangentV2));
+                if (isNaN(normal2)) normal2 = {0.0f, 0.0f, 1.0f};  // Fallback normal
 
                 Point tangentU3 = bezierPatchTangentU(patchPoints, 3, u_next, v);
                 Point tangentV3 = bezierPatchTangentV(patchPoints, 3, u_next, v);
                 Point normal3 = normalize(crossProduct(tangentU3, tangentV3));
+                if (isNaN(normal3)) normal3 = {0.0f, 0.0f, 1.0f};  // Fallback normal
 
                 Point tangentU4 = bezierPatchTangentU(patchPoints, 3, u_next, v_next);
                 Point tangentV4 = bezierPatchTangentV(patchPoints, 3, u_next, v_next);
                 Point normal4 = normalize(crossProduct(tangentU4, tangentV4));
+                if (isNaN(normal4)) normal4 = {0.0f, 0.0f, 1.0f};  // Fallback normal
 
                 // First triangle
-                if (normal1.x != normal1.x || normal2.x != normal2.x || normal3.x != normal3.x) continue;  // Skip NaN normals
                 outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << "\n";
                 outFile << "n: " << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
                 outFile << "n: " << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
@@ -155,7 +164,6 @@ void writeBezierPatch(const std::string& filename, const std::vector<std::vector
                         << p3.x << "," << p3.y << "," << p3.z << "\n";
 
                 // Second triangle
-                if (normal2.x != normal2.x || normal4.x != normal4.x || normal3.x != normal3.x) continue;  // Skip NaN normals
                 outFile << "n: " << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
                 outFile << "n: " << normal4.x << "," << normal4.y << "," << normal4.z << "\n";
                 outFile << "n: " << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
