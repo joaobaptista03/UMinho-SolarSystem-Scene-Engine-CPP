@@ -1,3 +1,5 @@
+#include "bezier.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -42,6 +44,47 @@ Point bezierPatchPoint(const std::vector<Point>& controlPoints, int degree, floa
     return point;
 }
 
+// Calculate the tangent at a point on the Bezier patch in the u direction
+Point bezierPatchTangentU(const std::vector<Point>& controlPoints, int degree, float u, float v) {
+    Point tangent = {0.0f, 0.0f, 0.0f};
+    for (int i = 0; i <= degree; ++i) {
+        for (int j = 0; j <= degree; ++j) {
+            float B_i = (i * std::pow(u, i - 1) * std::pow(1 - u, degree - i)) - ((degree - i) * std::pow(u, i) * std::pow(1 - u, degree - i - 1));
+            float B_j = std::tgamma(degree + 1) / (std::tgamma(j + 1) * std::tgamma(degree - j + 1)) * std::pow(v, j) * std::pow(1 - v, degree - j);
+            tangent = tangent + (B_i * B_j * controlPoints[i * (degree + 1) + j]);
+        }
+    }
+    return tangent;
+}
+
+// Calculate the tangent at a point on the Bezier patch in the v direction
+Point bezierPatchTangentV(const std::vector<Point>& controlPoints, int degree, float u, float v) {
+    Point tangent = {0.0f, 0.0f, 0.0f};
+    for (int i = 0; i <= degree; ++i) {
+        for (int j = 0; j <= degree; ++j) {
+            float B_i = std::tgamma(degree + 1) / (std::tgamma(i + 1) * std::tgamma(degree - i + 1)) * std::pow(u, i) * std::pow(1 - u, degree - i);
+            float B_j = (j * std::pow(v, j - 1) * std::pow(1 - v, degree - j)) - ((degree - j) * std::pow(v, j) * std::pow(1 - v, degree - j - 1));
+            tangent = tangent + (B_i * B_j * controlPoints[i * (degree + 1) + j]);
+        }
+    }
+    return tangent;
+}
+
+// Calculate the cross product of two vectors
+Point crossProduct(const Point& a, const Point& b) {
+    return {
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    };
+}
+
+// Normalize a vector
+Point normalize(const Point& p) {
+    float length = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+    return {p.x / length, p.y / length, p.z / length};
+}
+
 // Write the Bezier patch to a file
 void writeBezierPatch(const std::string& filename, const std::vector<std::vector<int>>& patches, const std::vector<Point>& controlPoints, int tessellation) {
     std::ofstream outFile("../Output/" + filename);
@@ -69,15 +112,37 @@ void writeBezierPatch(const std::string& filename, const std::vector<std::vector
                 Point p3 = bezierPatchPoint(patchPoints, 3, u_next, v);
                 Point p4 = bezierPatchPoint(patchPoints, 3, u_next, v_next);
 
+                Point tangentU1 = bezierPatchTangentU(patchPoints, 3, u, v);
+                Point tangentV1 = bezierPatchTangentV(patchPoints, 3, u, v);
+                Point normal1 = normalize(crossProduct(tangentU1, tangentV1));
+
+                Point tangentU2 = bezierPatchTangentU(patchPoints, 3, u, v_next);
+                Point tangentV2 = bezierPatchTangentV(patchPoints, 3, u, v_next);
+                Point normal2 = normalize(crossProduct(tangentU2, tangentV2));
+
+                Point tangentU3 = bezierPatchTangentU(patchPoints, 3, u_next, v);
+                Point tangentV3 = bezierPatchTangentV(patchPoints, 3, u_next, v);
+                Point normal3 = normalize(crossProduct(tangentU3, tangentV3));
+
+                Point tangentU4 = bezierPatchTangentU(patchPoints, 3, u_next, v_next);
+                Point tangentV4 = bezierPatchTangentV(patchPoints, 3, u_next, v_next);
+                Point normal4 = normalize(crossProduct(tangentU4, tangentV4));
+
                 // First triangle
-                outFile << "t: " << p1.x << "," << p1.y << "," << p1.z << " ";
-                outFile << p2.x << "," << p2.y << "," << p2.z << " ";
-                outFile << p3.x << "," << p3.y << "," << p3.z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << "\n";
+                outFile << "n: " << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
+                outFile << "n: " << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+                outFile << "t: " << p1.x << "," << p1.y << "," << p1.z << " "
+                        << p2.x << "," << p2.y << "," << p2.z << " "
+                        << p3.x << "," << p3.y << "," << p3.z << "\n";
 
                 // Second triangle
-                outFile << "t: " << p2.x << "," << p2.y << "," << p2.z << " ";
-                outFile << p4.x << "," << p4.y << "," << p4.z << " ";
-                outFile << p3.x << "," << p3.y << "," << p3.z << "\n";
+                outFile << "n: " << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
+                outFile << "n: " << normal4.x << "," << normal4.y << "," << normal4.z << "\n";
+                outFile << "n: " << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+                outFile << "t: " << p2.x << "," << p2.y << "," << p2.z << " "
+                        << p4.x << "," << p4.y << "," << p4.z << " "
+                        << p3.x << "," << p3.y << "," << p3.z << "\n";
             }
         }
     }

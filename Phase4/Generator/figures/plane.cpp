@@ -27,7 +27,6 @@ void generatePlane(const std::string &fileName, float length, int divisions)
 	int verticesPerLine = divisions + 1;
 	std::vector<Point> points;
 
-	// Vertices of the plane
 	for (int i = 0; i <= divisions; ++i)
 	{
 		for (int j = 0; j <= divisions; ++j)
@@ -43,13 +42,12 @@ void generatePlane(const std::string &fileName, float length, int divisions)
 	}
 
 	int size = points.size();
-	//Normals of each vertex
+	
 	for (int i = 0; i < size; ++i)
 	{
 		outFile << "n: " << 0 << "," << 1 << "," << 0 << "\n";
 	}
 
-	//Triangles of the plane
 	for (int i = 0; i < divisions; ++i)
 	{
 		for (int j = 0; j < divisions; ++j)
