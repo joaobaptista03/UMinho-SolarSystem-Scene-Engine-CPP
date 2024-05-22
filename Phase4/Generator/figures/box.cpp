@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <cmath>
 
 struct Point {
     float x, y, z;
@@ -38,21 +39,6 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
         }
     }
 
-    // Determine the normal vector based on the axis and normal direction
-    Point normal;
-    if (axis == "xy") {
-        normal = {0, 0, normalDirection};
-    } else if (axis == "xz") {
-        normal = {0, normalDirection, 0};
-    } else if (axis == "yz") {
-        normal = {normalDirection, 0, 0};
-    }
-
-    // Write normals for each vertex
-    for (const auto& point : points) {
-        outFile << "n: " << normal.x << "," << normal.y << "," << normal.z << "\n";
-    }
-
     // Triangles of the face
     for (int i = 0; i < divisions; ++i) {
         for (int j = 0; j < divisions; ++j) {
@@ -60,6 +46,23 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
             int topRight = topLeft + 1;
             int bottomLeft = topLeft + (divisions + 1);
             int bottomRight = bottomLeft + 1;
+
+            Point normal1 = points[topLeft];
+            Point normal2 = points[bottomLeft];
+            Point normal3 = points[bottomRight];
+            Point normal4 = points[topRight];
+
+            // Normalize the normals
+            auto normalize = [](const Point& p) -> Point {
+                float length = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+                return {p.x / length, p.y / length, p.z / length};
+            };
+
+            normal1 = normalize(normal1);
+            normal2 = normalize(normal2);
+            normal3 = normalize(normal3);
+            normal4 = normalize(normal4);
+
 
             // Ensure correct winding order for the triangles
             if (axis == "xy" && normalDirection == 1) { // Top face
@@ -69,6 +72,15 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " "
                         << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
+
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal2.x << "," << normal2.y << "," << normal2.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << " ";
+                outFile << normal4.x << "," << normal4.y << "," << normal4.z << "\n";
+
             } else if (axis == "xy" && normalDirection == -1) { // Bottom face
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << " "
@@ -76,6 +88,13 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " "
                         << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal4.x << "," << normal4.y << "," << normal4.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << " ";
+                outFile << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
             } else if (axis == "xz" && normalDirection == 1) { // Front face
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << " "
@@ -83,6 +102,12 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " "
                         << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal4.x << "," << normal4.y << "," << normal4.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << " ";
+                outFile << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
             } else if (axis == "xz" && normalDirection == -1) { // Back face
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " "
@@ -90,6 +115,12 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " "
                         << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal2.x << "," << normal2.y << "," << normal2.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << " ";
+                outFile << normal4.x << "," << normal4.y << "," << normal4.z << "\n";
             } else if (axis == "yz" && normalDirection == 1) { // Right face
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " "
@@ -97,6 +128,12 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " "
                         << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal2.x << "," << normal2.y << "," << normal2.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << " ";
+                outFile << normal4.x << "," << normal4.y << "," << normal4.z << "\n";
             } else if (axis == "yz" && normalDirection == -1) { // Left face
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << " "
@@ -104,6 +141,12 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                         << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " "
                         << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal4.x << "," << normal4.y << "," << normal4.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
+                outFile << normal3.x << "," << normal3.y << "," << normal3.z << " ";
+                outFile << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
             }
         }
     }

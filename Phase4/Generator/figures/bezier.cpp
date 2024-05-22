@@ -1,5 +1,3 @@
-#include "bezier.hpp"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -9,7 +7,7 @@
 #include <iterator>
 #include <limits>
 #include <cmath>
-#include <cfloat> // For FLT_MAX
+#include <filesystem>
 
 struct Point {
     float x, y, z;
@@ -23,10 +21,6 @@ Point operator+(const Point& a, const Point& b) {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
-Point operator-(const Point& a, const Point& b) {
-    return {a.x - b.x, a.y - b.y, a.z - b.z};
-}
-
 // Parse a single control point from a string
 Point parsePoint(const std::string& line) {
     std::istringstream iss(line);
@@ -36,14 +30,10 @@ Point parsePoint(const std::string& line) {
     return p;
 }
 
-// Calculate factorial
-int factorial(int n) {
-    return (n == 0 || n == 1) ? 1 : n * factorial(n - 1);
-}
-
-// Calculate binomial coefficient
-float binomialCoeff(int n, int k) {
-    return factorial(n) / (factorial(k) * factorial(n - k));
+// Normalize a 3D vector
+Point normalize(const Point& p) {
+    float length = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+    return {p.x / length, p.y / length, p.z / length};
 }
 
 // Calculate a point on a Bezier patch using the Bernstein polynomial
@@ -51,66 +41,22 @@ Point bezierPatchPoint(const std::vector<Point>& controlPoints, int degree, floa
     Point point = {0.0f, 0.0f, 0.0f};
     for (int i = 0; i <= degree; ++i) {
         for (int j = 0; j <= degree; ++j) {
-            float B_i = binomialCoeff(degree, i) * std::pow(u, i) * std::pow(1 - u, degree - i);
-            float B_j = binomialCoeff(degree, j) * std::pow(v, j) * std::pow(1 - v, degree - j);
+            float B_i = std::tgamma(degree + 1) / (std::tgamma(i + 1) * std::tgamma(degree - i + 1)) * std::pow(u, i) * std::pow(1 - u, degree - i);
+            float B_j = std::tgamma(degree + 1) / (std::tgamma(j + 1) * std::tgamma(degree - j + 1)) * std::pow(v, j) * std::pow(1 - v, degree - j);
             point = point + (B_i * B_j * controlPoints[i * (degree + 1) + j]);
         }
     }
     return point;
 }
 
-// Calculate the tangent at a point on the Bezier patch in the u direction
-Point bezierPatchTangentU(const std::vector<Point>& controlPoints, int degree, float u, float v) {
-    Point tangent = {0.0f, 0.0f, 0.0f};
-    for (int i = 0; i <= degree; ++i) {
-        for (int j = 0; j <= degree; ++j) {
-            float B_i = binomialCoeff(degree, i) * (i * std::pow(u, i - 1) * std::pow(1 - u, degree - i) - (degree - i) * std::pow(u, i) * std::pow(1 - u, degree - i - 1));
-            float B_j = binomialCoeff(degree, j) * std::pow(v, j) * std::pow(1 - v, degree - j);
-            tangent = tangent + (B_i * B_j * controlPoints[i * (degree + 1) + j]);
-        }
-    }
-    return tangent;
-}
-
-// Calculate the tangent at a point on the Bezier patch in the v direction
-Point bezierPatchTangentV(const std::vector<Point>& controlPoints, int degree, float u, float v) {
-    Point tangent = {0.0f, 0.0f, 0.0f};
-    for (int i = 0; i <= degree; ++i) {
-        for (int j = 0; j <= degree; ++j) {
-            float B_i = binomialCoeff(degree, i) * std::pow(u, i) * std::pow(1 - u, degree - i);
-            float B_j = binomialCoeff(degree, j) * (j * std::pow(v, j - 1) * std::pow(1 - v, degree - j) - (degree - j) * std::pow(v, j) * std::pow(1 - v, degree - j - 1));
-            tangent = tangent + (B_i * B_j * controlPoints[i * (degree + 1) + j]);
-        }
-    }
-    return tangent;
-}
-
-// Calculate the cross product of two vectors
-Point crossProduct(const Point& a, const Point& b) {
-    return {
-        a.y * b.z - a.z * b.y,
-        a.z * b.x - a.x * b.z,
-        a.x * b.y - a.y * b.x
-    };
-}
-
-// Normalize a vector
-Point normalize(const Point& p) {
-    float length = std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-    if (length == 0) {
-        return {0.0f, 0.0f, 0.0f};  // Return zero vector if length is zero
-    }
-    return {p.x / length, p.y / length, p.z / length};
-}
-
-// Check if a point has NaN values
-bool isNaN(const Point& p) {
-    return std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z);
-}
-
 // Write the Bezier patch to a file
 void writeBezierPatch(const std::string& filename, const std::vector<std::vector<int>>& patches, const std::vector<Point>& controlPoints, int tessellation) {
-    std::ofstream outFile("../Output/" + filename);
+    std::filesystem::path outputPath = "../Output/" + filename;
+
+    // Ensure the output directory exists
+    std::filesystem::create_directories(outputPath.parent_path());
+
+    std::ofstream outFile(outputPath);
     if (!outFile.is_open()) {
         std::cerr << "Could not open file for output: " << filename << std::endl;
         return;
@@ -135,48 +81,33 @@ void writeBezierPatch(const std::string& filename, const std::vector<std::vector
                 Point p3 = bezierPatchPoint(patchPoints, 3, u_next, v);
                 Point p4 = bezierPatchPoint(patchPoints, 3, u_next, v_next);
 
-                Point tangentU1 = bezierPatchTangentU(patchPoints, 3, u, v);
-                Point tangentV1 = bezierPatchTangentV(patchPoints, 3, u, v);
-                Point normal1 = normalize(crossProduct(tangentU1, tangentV1));
-                if (isNaN(normal1)) normal1 = {0.0f, 0.0f, 1.0f};  // Fallback normal
-
-                Point tangentU2 = bezierPatchTangentU(patchPoints, 3, u, v_next);
-                Point tangentV2 = bezierPatchTangentV(patchPoints, 3, u, v_next);
-                Point normal2 = normalize(crossProduct(tangentU2, tangentV2));
-                if (isNaN(normal2)) normal2 = {0.0f, 0.0f, 1.0f};  // Fallback normal
-
-                Point tangentU3 = bezierPatchTangentU(patchPoints, 3, u_next, v);
-                Point tangentV3 = bezierPatchTangentV(patchPoints, 3, u_next, v);
-                Point normal3 = normalize(crossProduct(tangentU3, tangentV3));
-                if (isNaN(normal3)) normal3 = {0.0f, 0.0f, 1.0f};  // Fallback normal
-
-                Point tangentU4 = bezierPatchTangentU(patchPoints, 3, u_next, v_next);
-                Point tangentV4 = bezierPatchTangentV(patchPoints, 3, u_next, v_next);
-                Point normal4 = normalize(crossProduct(tangentU4, tangentV4));
-                if (isNaN(normal4)) normal4 = {0.0f, 0.0f, 1.0f};  // Fallback normal
+                Point n1 = normalize(p1);
+                Point n2 = normalize(p2);
+                Point n3 = normalize(p3);
+                Point n4 = normalize(p4);
 
                 // First triangle
-                outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << "\n";
-                outFile << "n: " << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
-                outFile << "n: " << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
                 outFile << "t: " << p1.x << "," << p1.y << "," << p1.z << " "
                         << p2.x << "," << p2.y << "," << p2.z << " "
                         << p3.x << "," << p3.y << "," << p3.z << "\n";
+                outFile << "n: " << n1.x << "," << n1.y << "," << n1.z << " "
+                        << n2.x << "," << n2.y << "," << n2.z << " "
+                        << n3.x << "," << n3.y << "," << n3.z << "\n";
 
                 // Second triangle
-                outFile << "n: " << normal2.x << "," << normal2.y << "," << normal2.z << "\n";
-                outFile << "n: " << normal4.x << "," << normal4.y << "," << normal4.z << "\n";
-                outFile << "n: " << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
                 outFile << "t: " << p2.x << "," << p2.y << "," << p2.z << " "
                         << p4.x << "," << p4.y << "," << p4.z << " "
                         << p3.x << "," << p3.y << "," << p3.z << "\n";
+                outFile << "n: " << n2.x << "," << n2.y << "," << n2.z << " "
+                        << n4.x << "," << n4.y << "," << n4.z << " "
+                        << n3.x << "," << n3.y << "," << n3.z << "\n";
             }
         }
     }
     outFile.close();
 }
 
-void bezier(char* controlPointsFile, int tessellationLevel, char* outputFileName) {
+void bezier(char *controlPointsFile, int tessellationLevel, char *outputFileName) {
     std::ifstream inFile(controlPointsFile);
     if (!inFile) {
         std::cerr << "Failed to open control points file." << std::endl;
@@ -203,7 +134,8 @@ void bezier(char* controlPointsFile, int tessellationLevel, char* outputFileName
         if (patchIndices.size() == 16) {
             patches[i] = patchIndices;
         } else {
-            std::cerr << "Error: Patch indices size mismatch." << std::endl;
+            std::copy(patchIndices.begin(), patchIndices.end(), std::ostream_iterator<int>(std::cout, " "));
+            std::cout << std::endl;
             return;
         }
     }

@@ -49,11 +49,11 @@ struct Rotate {
 struct ColorOrTexture {
 	bool isTexture = false;
 	std::string texture;
-	float diffuse[3];
-	float ambient[3];
-	float specular[3];
-	float emissive[3];
-	float shininess;
+	float diffuse[4] = {200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1};
+	float ambient[4] = {50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f, 1};
+	float specular[4] = {0, 0, 0, 1};
+	float emissive[4] = {0, 0, 0, 1};
+	float shininess = 0;
 };
 
 struct ParsedModel {
@@ -273,18 +273,23 @@ void drawModel(ParsedModel modelParsed) {
 
     bool hasColorOrTexture = modelParsed.hasColorOrTexture;
     ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
-    if (hasColorOrTexture) {
-        if (colorOrTexture.isTexture) {
-            // Set texture (if applicable)...
-        } else {
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
-            glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
-            glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
-            glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
-            glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
-        }
-    }
 
+	// TODO
+	if (hasColorOrTexture) {
+		if (colorOrTexture.isTexture) {
+			glEnable(GL_TEXTURE_2D);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		} else {
+			glDisable(GL_TEXTURE_2D);
+		}
+	}
+
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
+	glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
+	glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
+			
     glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, 0, nullptr);
@@ -296,7 +301,6 @@ void drawModel(ParsedModel modelParsed) {
     glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
 }
 
 void drawGroup(const Group& group, float currentTime) {
@@ -354,6 +358,7 @@ void changeSize(int w, int h) {
 
 void enableLights() {
 	glEnable(GL_LIGHTING);
+	glEnable(GL_RESCALE_NORMAL);
 
 	float amb[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
@@ -853,9 +858,9 @@ void parseDiffuse(std::string line) {
 		std::string bStr = line.substr(bStart, bEnd - bStart);
 
 		group->models.back().hasColorOrTexture = true;
-		group->models.back().colorOrTexture.diffuse[0] = std::stof(rStr);
-		group->models.back().colorOrTexture.diffuse[1] = std::stof(gStr);
-		group->models.back().colorOrTexture.diffuse[2] = std::stof(bStr);
+		group->models.back().colorOrTexture.diffuse[0] = std::stof(rStr) / 255.0f;
+		group->models.back().colorOrTexture.diffuse[1] = std::stof(gStr) / 255.0f;
+		group->models.back().colorOrTexture.diffuse[2] = std::stof(bStr) / 255.0f;
 	}
 }
 
@@ -879,9 +884,9 @@ void parseAmbient(std::string line) {
 		std::string bStr = line.substr(bStart, bEnd - bStart);
 
 		group->models.back().hasColorOrTexture = true;
-		group->models.back().colorOrTexture.ambient[0] = std::stof(rStr);
-		group->models.back().colorOrTexture.ambient[1] = std::stof(gStr);
-		group->models.back().colorOrTexture.ambient[2] = std::stof(bStr);
+		group->models.back().colorOrTexture.ambient[0] = std::stof(rStr) / 255.0f;
+		group->models.back().colorOrTexture.ambient[1] = std::stof(gStr) / 255.0f;
+		group->models.back().colorOrTexture.ambient[2] = std::stof(bStr) / 255.0f;
 	}
 }
 
@@ -905,9 +910,9 @@ void parseSpecular(std::string line) {
 		std::string bStr = line.substr(bStart, bEnd - bStart);
 
 		group->models.back().hasColorOrTexture = true;
-		group->models.back().colorOrTexture.specular[0] = std::stof(rStr);
-		group->models.back().colorOrTexture.specular[1] = std::stof(gStr);
-		group->models.back().colorOrTexture.specular[2] = std::stof(bStr);
+		group->models.back().colorOrTexture.specular[0] = std::stof(rStr) / 255.0f;
+		group->models.back().colorOrTexture.specular[1] = std::stof(gStr) / 255.0f;
+		group->models.back().colorOrTexture.specular[2] = std::stof(bStr) / 255.0f;
 	}
 }
 
@@ -931,9 +936,9 @@ void parseEmissive(std::string line) {
 		std::string bStr = line.substr(bStart, bEnd - bStart);
 
 		group->models.back().hasColorOrTexture = true;
-		group->models.back().colorOrTexture.emissive[0] = std::stof(rStr);
-		group->models.back().colorOrTexture.emissive[1] = std::stof(gStr);
-		group->models.back().colorOrTexture.emissive[2] = std::stof(bStr);
+		group->models.back().colorOrTexture.emissive[0] = std::stof(rStr) / 255.0f;
+		group->models.back().colorOrTexture.emissive[1] = std::stof(gStr) / 255.0f;
+		group->models.back().colorOrTexture.emissive[2] = std::stof(bStr) / 255.0f;
 	}
 }
 

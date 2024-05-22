@@ -40,8 +40,6 @@ void generatePlane(const std::string &fileName, float length, int divisions)
         }
     }
 
-    int size = points.size();
-
     for (int i = 0; i < divisions; ++i)
     {
         for (int j = 0; j < divisions; ++j)
@@ -57,9 +55,9 @@ void generatePlane(const std::string &fileName, float length, int divisions)
                     << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " "
                     << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
 
-            outFile << "n: " << 0 << "," << 1 << "," << 0 << "\n";
-            outFile << "n: " << 0 << "," << 1 << "," << 0 << "\n";
-            outFile << "n: " << 0 << "," << 1 << "," << 0 << "\n";
+            outFile << "n: " << 0 << "," << 1 << "," << 0 << " ";
+            outFile << 0 << "," << 1 << "," << 0 << " ";
+            outFile << 0 << "," << 1 << "," << 0 << "\n";
 
             // Second triangle
             outFile << "t: " 
@@ -67,9 +65,9 @@ void generatePlane(const std::string &fileName, float length, int divisions)
                     << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " "
                     << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
 
-            outFile << "n: " << 0 << "," << 1 << "," << 0 << "\n";
-            outFile << "n: " << 0 << "," << 1 << "," << 0 << "\n";
-            outFile << "n: " << 0 << "," << 1 << "," << 0 << "\n";
+            outFile << "n: " << 0 << "," << 1 << "," << 0 << " ";
+            outFile << 0 << "," << 1 << "," << 0 << " ";
+            outFile << 0 << "," << 1 << "," << 0 << "\n";
         }
     }
 
