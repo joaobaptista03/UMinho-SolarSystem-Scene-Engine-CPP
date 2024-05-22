@@ -234,20 +234,7 @@ void drawModel(ParsedModel modelParsed) {
         std::vector<float> normals;
 		std::vector<float> triangles;
         while (std::getline(inputFile, line)) {
-            if(line[0] == 'v'){
-				std::istringstream iss(line.substr(3));
-				std::string token;
-				while (iss >> token) {
-					std::istringstream subIss(token);
-					std::string subToken;
-
-					while (std::getline(subIss, subToken, ',')) {
-						float subTokenFloat = std::stof(subToken);
-						vertices.push_back(subTokenFloat);
-					}
-            	}
-        	}
-			else if(line[0] == 'n'){
+			if(line[0] == 'n'){
 				std::istringstream iss(line.substr(3));
 				std::string token;
 				while (iss >> token) {
@@ -282,52 +269,34 @@ void drawModel(ParsedModel modelParsed) {
 		model.nboId = loadModelToNBO(normals);
 		modelCache[modelParsed.model] = model;
 	}
+    Model& model = modelCache[modelParsed.model];
 
-	Model& model = modelCache[modelParsed.model];
-
-		bool hasColorOrTexture = modelParsed.hasColorOrTexture;
-		ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
-		if(hasColorOrTexture){
-			if(colorOrTexture.isTexture){
-				//to do texture
-			}
-			else{
-				glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
-				glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
-				glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
-				glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
-				glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
-			}
-		}
-		
-		glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
-		glEnableClientState(GL_VERTEX_ARRAY);
-    	glVertexPointer(3, GL_FLOAT, 0, nullptr);
-
-		glBindBuffer(GL_ARRAY_BUFFER, model.nboId);
-		glEnableClientState(GL_NORMAL_ARRAY);
-		glNormalPointer(GL_FLOAT, 0, nullptr);
-
-    	glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
-    	glDisableClientState(GL_VERTEX_ARRAY);
-    	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // Reset material 
+    bool hasColorOrTexture = modelParsed.hasColorOrTexture;
+    ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
     if (hasColorOrTexture) {
-        if (!colorOrTexture.isTexture) {
-            GLfloat defaultDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
-            GLfloat defaultAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
-            GLfloat defaultSpecular[] = {0.0f, 0.0f, 0.0f, 1.0f};
-            GLfloat defaultEmissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
-            GLfloat defaultShininess = 0.0f;
-
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, defaultDiffuse);
-            glMaterialfv(GL_FRONT, GL_AMBIENT, defaultAmbient);
-            glMaterialfv(GL_FRONT, GL_SPECULAR, defaultSpecular);
-            glMaterialfv(GL_FRONT, GL_EMISSION, defaultEmissive);
-            glMaterialf(GL_FRONT, GL_SHININESS, defaultShininess);
+        if (colorOrTexture.isTexture) {
+            // Set texture (if applicable)...
+        } else {
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
+            glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
+            glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
+            glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
+            glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
         }
     }
+
+    glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(3, GL_FLOAT, 0, nullptr);
+
+    glBindBuffer(GL_ARRAY_BUFFER, model.nboId);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glNormalPointer(GL_FLOAT, 0, nullptr);
+
+    glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 }
 
 void drawGroup(const Group& group, float currentTime) {
@@ -383,6 +352,20 @@ void changeSize(int w, int h) {
 	glMatrixMode(GL_MODELVIEW);
 }
 
+void enableLights() {
+	glEnable(GL_LIGHTING);
+
+	float amb[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
+
+	for (int i = 0; i < lights.size(); i++) {
+		glEnable(GL_LIGHT0 + i);
+		float white[4] = {1.0, 1.0, 1.0, 1.0};
+		glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, white);
+		glLightfv(GL_LIGHT0 + i, GL_SPECULAR, white);
+	}
+}
+
 void renderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -390,6 +373,8 @@ void renderScene() {
 	gluLookAt(cameraX, cameraY, cameraZ,
 			  lookAtX, lookAtY, lookAtZ,
 			  upX, upY, upZ);
+
+	glDisable(GL_LIGHTING);
 
 	glBegin(GL_LINES);
 	
@@ -407,6 +392,24 @@ void renderScene() {
 	glEnd();
 
 	glColor3f(1.0f, 1.0f, 1.0f);
+
+	glEnable(GL_LIGHTING);
+
+	for (const Light& light : lights) { 
+		if (light.type == "point") {
+			GLfloat pos[4] = {light.position.x, light.position.y, light.position.z, 1.0};
+			glLightfv(GL_LIGHT0, GL_POSITION, pos);
+		} else if (light.type == "directional") {
+			GLfloat dir[3] = {light.direction.x, light.direction.y, light.direction.z};
+			glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
+		} else if (light.type == "spot") {
+			GLfloat pos[4] = {light.position.x, light.position.y, light.position.z, 1.0};
+			GLfloat dir[3] = {light.direction.x, light.direction.y, light.direction.z};
+			glLightfv(GL_LIGHT0, GL_POSITION, pos);
+			glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
+			glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, light.cutoff);
+		}
+	}
 
 	float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 
@@ -1122,37 +1125,6 @@ void parseXML(std::ifstream& inputFile) {
 	}
 }
 
-void enableLights() {
-    glEnable(GL_LIGHTING);
-    for (int i = 0; i < lights.size(); i++) {
-        glEnable(GL_LIGHT0 + i);
-
-		GLfloat dark[4] = {0.2,0.2,0.2,1.0};
-		GLfloat white[4] = {1.0,1.0,1.0,1.0};
-
-		float amb[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
-
-		glLightfv(GL_LIGHT0 + i, GL_AMBIENT, dark);
-		glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, white);
-		glLightfv(GL_LIGHT0 + i, GL_SPECULAR, white);
-
-        if (lights[i].type == "directional") {
-            float lightDir[4] = {lights[i].direction.x, lights[i].direction.y, lights[i].direction.z, 0.0};
-            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightDir);
-        } else if (lights[i].type == "point") {
-            float lightPos[4] = {lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.0};
-            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightPos);
-        } else if (lights[i].type == "spot") {
-            float lightPos[4] = {lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.0};
-            float lightDir[4] = {lights[i].direction.x, lights[i].direction.y, lights[i].direction.z, 0.0};
-            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightPos);
-            glLightfv(GL_LIGHT0 + i, GL_SPOT_DIRECTION, lightDir);
-            glLightf(GL_LIGHT0 + i, GL_SPOT_CUTOFF, lights[i].cutoff);
-        }
-    }
-}
-
 int main(int argc, char *argv[]) {
 	if (argc != 2) {
 		std::cerr << "Usage: " << argv[0] << " <xml file>" << std::endl;
@@ -1175,22 +1147,19 @@ int main(int argc, char *argv[]) {
 	glutInitWindowSize(windowWidth, windowHeight);
 	glutCreateWindow("CG@DI-UM");
 
-	glewInit();
-
 	glutDisplayFunc(renderScene);
+	glutIdleFunc(renderScene);
 	glutReshapeFunc(changeSize);
 
 	glutKeyboardFunc(processKeys);
 	glutMouseFunc(processMouseButtons);
 	glutMotionFunc(processMouseMotion);
-
 	glutSpecialFunc(processSpecialKeys);
+
+	glewInit();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-
-	glutIdleFunc(renderScene);
-
 	enableLights();
 	glutMainLoop();
 
