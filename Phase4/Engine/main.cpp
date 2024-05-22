@@ -282,35 +282,37 @@ void drawModel(ParsedModel modelParsed) {
 		model.nboId = loadModelToNBO(normals);
 		modelCache[modelParsed.model] = model;
 	}
-    Model& model = modelCache[modelParsed.model];
 
-    bool hasColorOrTexture = modelParsed.hasColorOrTexture;
-    ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
-    if (hasColorOrTexture) {
-        if (colorOrTexture.isTexture) {
-            // Set texture (if applicable)...
-        } else {
-            glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
-            glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
-            glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
-            glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
-            glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
-        }
-    }
+	Model& model = modelCache[modelParsed.model];
 
-    glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(3, GL_FLOAT, 0, nullptr);
+		bool hasColorOrTexture = modelParsed.hasColorOrTexture;
+		ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
+		if(hasColorOrTexture){
+			if(colorOrTexture.isTexture){
+				//to do texture
+			}
+			else{
+				glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
+				glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
+				glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
+				glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
+				glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
+			}
+		}
+		
+		glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
+		glEnableClientState(GL_VERTEX_ARRAY);
+    	glVertexPointer(3, GL_FLOAT, 0, nullptr);
 
-    glBindBuffer(GL_ARRAY_BUFFER, model.nboId);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glNormalPointer(GL_FLOAT, 0, nullptr);
+		glBindBuffer(GL_ARRAY_BUFFER, model.nboId);
+		glEnableClientState(GL_NORMAL_ARRAY);
+		glNormalPointer(GL_FLOAT, 0, nullptr);
 
-    glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    	glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
+    	glDisableClientState(GL_VERTEX_ARRAY);
+    	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // Reset material properties to default
+    // Reset material 
     if (hasColorOrTexture) {
         if (!colorOrTexture.isTexture) {
             GLfloat defaultDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
@@ -381,35 +383,6 @@ void changeSize(int w, int h) {
 	glMatrixMode(GL_MODELVIEW);
 }
 
-void enableLights() {
-    glEnable(GL_LIGHTING);
-    for (int i = 0; i < lights.size(); i++) {
-        glEnable(GL_LIGHT0 + i);
-
-        GLfloat dark[4] = {0.1, 0.1, 0.1, 1.0};
-        GLfloat white[4] = {0.8, 0.8, 0.8, 1.0};
-
-        glLightfv(GL_LIGHT0 + i, GL_AMBIENT, dark);
-        glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, white);
-        glLightfv(GL_LIGHT0 + i, GL_SPECULAR, white);
-
-        if (lights[i].type == "directional") {
-            float lightDir[4] = {lights[i].direction.x, lights[i].direction.y, lights[i].direction.z, 0.0};
-            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightDir);
-        } else if (lights[i].type == "point") {
-            float lightPos[4] = {lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.0};
-            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightPos);
-        } else if (lights[i].type == "spot") {
-            float lightPos[4] = {lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.0};
-            float lightDir[4] = {lights[i].direction.x, lights[i].direction.y, lights[i].direction.z, 0.0};
-            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightPos);
-            glLightfv(GL_LIGHT0 + i, GL_SPOT_DIRECTION, lightDir);
-            glLightf(GL_LIGHT0 + i, GL_SPOT_CUTOFF, lights[i].cutoff);
-        }
-    }
-}
-
-
 void renderScene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -417,8 +390,6 @@ void renderScene() {
 	gluLookAt(cameraX, cameraY, cameraZ,
 			  lookAtX, lookAtY, lookAtZ,
 			  upX, upY, upZ);
-
-	glDisable(GL_LIGHTING);
 
 	glBegin(GL_LINES);
 	
@@ -436,8 +407,6 @@ void renderScene() {
 	glEnd();
 
 	glColor3f(1.0f, 1.0f, 1.0f);
-
-	enableLights();
 
 	float currentTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 
@@ -1151,6 +1120,37 @@ void parseXML(std::ifstream& inputFile) {
 
 		else if (line.find("<light ") != std::string::npos) parseLight(line);
 	}
+}
+
+void enableLights() {
+    glEnable(GL_LIGHTING);
+    for (int i = 0; i < lights.size(); i++) {
+        glEnable(GL_LIGHT0 + i);
+
+		GLfloat dark[4] = {0.2,0.2,0.2,1.0};
+		GLfloat white[4] = {1.0,1.0,1.0,1.0};
+
+		float amb[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
+
+		glLightfv(GL_LIGHT0 + i, GL_AMBIENT, dark);
+		glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, white);
+		glLightfv(GL_LIGHT0 + i, GL_SPECULAR, white);
+
+        if (lights[i].type == "directional") {
+            float lightDir[4] = {lights[i].direction.x, lights[i].direction.y, lights[i].direction.z, 0.0};
+            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightDir);
+        } else if (lights[i].type == "point") {
+            float lightPos[4] = {lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.0};
+            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightPos);
+        } else if (lights[i].type == "spot") {
+            float lightPos[4] = {lights[i].position.x, lights[i].position.y, lights[i].position.z, 1.0};
+            float lightDir[4] = {lights[i].direction.x, lights[i].direction.y, lights[i].direction.z, 0.0};
+            glLightfv(GL_LIGHT0 + i, GL_POSITION, lightPos);
+            glLightfv(GL_LIGHT0 + i, GL_SPOT_DIRECTION, lightDir);
+            glLightf(GL_LIGHT0 + i, GL_SPOT_CUTOFF, lights[i].cutoff);
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {
