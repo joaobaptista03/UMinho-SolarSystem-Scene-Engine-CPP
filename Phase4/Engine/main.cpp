@@ -76,6 +76,7 @@ struct Group {
 
 struct Model {
     GLuint vboId;
+	GLuint nboId;
     int numVertices;
 };
 
@@ -211,6 +212,15 @@ GLuint loadModelToVBO(const std::vector<float>& vertices) {
     return vboId;
 }
 
+GLuint loadModelToNBO(const std::vector<float>& normals) {
+	GLuint nboId;
+	glGenBuffers(1, &nboId);
+	glBindBuffer(GL_ARRAY_BUFFER, nboId);
+	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float), &normals[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	return nboId;
+}
+
 void drawModel(ParsedModel modelParsed) {
     if (modelCache.find(modelParsed.model) == modelCache.end()) {
         std::ifstream inputFile(modelParsed.model);
@@ -218,74 +228,106 @@ void drawModel(ParsedModel modelParsed) {
             std::cerr << "Failed to open file: " << modelParsed.model << "\n";
             return;
         }
-        
+
         std::string line;
         std::vector<float> vertices;
+        std::vector<float> normals;
+		std::vector<float> triangles;
         while (std::getline(inputFile, line)) {
-            std::istringstream iss(line);
-			std::string token;
-			
-            while (iss >> token) {
-				std::istringstream subIss(token);
-				std::string subToken;
+            if(line[0] == 'v'){
+				std::istringstream iss(line.substr(3));
+				std::string token;
+				while (iss >> token) {
+					std::istringstream subIss(token);
+					std::string subToken;
 
-				while (std::getline(subIss, subToken, ',')) {
-					float subTokenFloat = std::stof(subToken);
-					vertices.push_back(subTokenFloat);
+					while (std::getline(subIss, subToken, ',')) {
+						float subTokenFloat = std::stof(subToken);
+						vertices.push_back(subTokenFloat);
+					}
+            	}
+        	}
+			else if(line[0] == 'n'){
+				std::istringstream iss(line.substr(3));
+				std::string token;
+				while (iss >> token) {
+					std::istringstream subIss(token);
+					std::string subToken;
+
+					while (std::getline(subIss, subToken, ',')) {
+						float subTokenFloat = std::stof(subToken);
+						normals.push_back(subTokenFloat);
+					}
 				}
-            }
-        }
-        
+			}
+			else if(line[0] == 't'){
+				std::istringstream iss(line.substr(3));
+				std::string token;
+				while (iss >> token) {
+					std::istringstream subIss(token);
+					std::string subToken;
+
+					while (std::getline(subIss, subToken, ',')) {
+						float subTokenFloat = std::stof(subToken);
+						triangles.push_back(subTokenFloat);
+					}
+				}
+			}
+		}
         inputFile.close();
+        
         Model model;
-        model.numVertices = vertices.size() / 3;
-        model.vboId = loadModelToVBO(vertices);
-        modelCache[modelParsed.model] = model;
+		model.numVertices = triangles.size() / 3;
+		model.vboId = loadModelToVBO(triangles);
+		model.nboId = loadModelToNBO(normals);
+		modelCache[modelParsed.model] = model;
+	}
+
+	Model& model = modelCache[modelParsed.model];
+
+		bool hasColorOrTexture = modelParsed.hasColorOrTexture;
+		ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
+		if(hasColorOrTexture){
+			if(colorOrTexture.isTexture){
+				//to do texture
+			}
+			else{
+				glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
+				glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
+				glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
+				glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
+				glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
+			}
+		}
+		
+		glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
+		glEnableClientState(GL_VERTEX_ARRAY);
+    	glVertexPointer(3, GL_FLOAT, 0, nullptr);
+
+		glBindBuffer(GL_ARRAY_BUFFER, model.nboId);
+		glEnableClientState(GL_NORMAL_ARRAY);
+		glNormalPointer(GL_FLOAT, 0, nullptr);
+
+    	glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
+    	glDisableClientState(GL_VERTEX_ARRAY);
+    	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // Reset material 
+    if (hasColorOrTexture) {
+        if (!colorOrTexture.isTexture) {
+            GLfloat defaultDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
+            GLfloat defaultAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
+            GLfloat defaultSpecular[] = {0.0f, 0.0f, 0.0f, 1.0f};
+            GLfloat defaultEmissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
+            GLfloat defaultShininess = 0.0f;
+
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, defaultDiffuse);
+            glMaterialfv(GL_FRONT, GL_AMBIENT, defaultAmbient);
+            glMaterialfv(GL_FRONT, GL_SPECULAR, defaultSpecular);
+            glMaterialfv(GL_FRONT, GL_EMISSION, defaultEmissive);
+            glMaterialf(GL_FRONT, GL_SHININESS, defaultShininess);
+        }
     }
-
-    Model& model = modelCache[modelParsed.model];
-
-	bool hasColorOrTexture = modelParsed.hasColorOrTexture;
-	ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
-	if (hasColorOrTexture) {
-		if (colorOrTexture.isTexture) {
-			// TODO texture
-		} else {
-			glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
-			glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
-			glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
-			glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
-			glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
-		}
-	}
-
-    glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(3, GL_FLOAT, 0, nullptr);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // Reset material properties
-	if (hasColorOrTexture) {
-		if (colorOrTexture.isTexture) {
-			// TODO texture
-		} else {
-			GLfloat defaultDiffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
-			GLfloat defaultAmbient[] = {0.2f, 0.2f, 0.2f, 1.0f};
-			GLfloat defaultSpecular[] = {0.0f, 0.0f, 0.0f, 1.0f};
-			GLfloat defaultEmissive[] = {0.0f, 0.0f, 0.0f, 1.0f};
-			GLfloat defaultShininess = 0.0f;
-
-			glMaterialfv(GL_FRONT, GL_DIFFUSE, defaultDiffuse);
-			glMaterialfv(GL_FRONT, GL_AMBIENT, defaultAmbient);
-			glMaterialfv(GL_FRONT, GL_SPECULAR, defaultSpecular);
-			glMaterialfv(GL_FRONT, GL_EMISSION, defaultEmissive);
-			glMaterialf(GL_FRONT, GL_SHININESS, defaultShininess);
-		}
-	}
 }
 
 void drawGroup(const Group& group, float currentTime) {
@@ -324,19 +366,6 @@ void drawGroup(const Group& group, float currentTime) {
     for (const Group& subgroup : group.subgroups) drawGroup(subgroup, currentTime);
 
     glPopMatrix();
-}
-
-void printGroup(const Group& group, int level) {
-	for (int i = 0; i < level; ++i) std::cout << "  ";
-	std::cout << "Group\n";
-
-	for (const ParsedModel modelParsed : group.models) {
-		std::string model = modelParsed.model;
-		for (int i = 0; i < level; ++i) std::cout << "  ";
-		std::cout << "  Model: " << model << "\n";
-	}
-
-	for (const Group& subgroup : group.subgroups) printGroup(subgroup, level + 1);
 }
 
 void changeSize(int w, int h) {
@@ -1100,6 +1129,9 @@ void enableLights() {
 
 		GLfloat dark[4] = {0.2,0.2,0.2,1.0};
 		GLfloat white[4] = {1.0,1.0,1.0,1.0};
+
+		float amb[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
 
 		glLightfv(GL_LIGHT0 + i, GL_AMBIENT, dark);
 		glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, white);

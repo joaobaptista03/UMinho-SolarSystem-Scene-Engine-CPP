@@ -70,12 +70,12 @@ void writeBezierPatch(const std::string& filename, const std::vector<std::vector
                 Point p4 = bezierPatchPoint(patchPoints, 3, u_next, v_next);
 
                 // First triangle
-                outFile << p1.x << "," << p1.y << "," << p1.z << " ";
+                outFile << "t: " << p1.x << "," << p1.y << "," << p1.z << " ";
                 outFile << p2.x << "," << p2.y << "," << p2.z << " ";
                 outFile << p3.x << "," << p3.y << "," << p3.z << "\n";
 
                 // Second triangle
-                outFile << p2.x << "," << p2.y << "," << p2.z << " ";
+                outFile << "t: " << p2.x << "," << p2.y << "," << p2.z << " ";
                 outFile << p4.x << "," << p4.y << "," << p4.z << " ";
                 outFile << p3.x << "," << p3.y << "," << p3.z << "\n";
             }

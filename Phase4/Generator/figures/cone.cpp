@@ -78,13 +78,13 @@ void generateCone(const std::string &fileName, float radius, float height, int s
 
 			if (stack == stacks - 1)
 			{
-				outFile << points[apexIndex].x << "," << points[apexIndex].y << "," << points[apexIndex].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+				outFile << "t: " << points[apexIndex].x << "," << points[apexIndex].y << "," << points[apexIndex].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
 			}
 			else
 			{
 
-				outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
-				outFile << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
+				outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+				outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " " << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " " << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
 
 			}
 		}
@@ -93,10 +93,10 @@ void generateCone(const std::string &fileName, float radius, float height, int s
 	//Base triangles
 	for (int slice = 1; slice < slices; ++slice)
 	{
-		outFile << points[slice].x << "," << points[slice].y << "," << points[slice].z << " " << points[(slice + 1)].x << "," << points[(slice + 1)].y << "," << points[(slice + 1)].z << " " << points[originIndex].x << "," << points[originIndex].y << "," << points[originIndex].z << "\n";
+		outFile << "t: " << points[slice].x << "," << points[slice].y << "," << points[slice].z << " " << points[(slice + 1)].x << "," << points[(slice + 1)].y << "," << points[(slice + 1)].z << " " << points[originIndex].x << "," << points[originIndex].y << "," << points[originIndex].z << "\n";
 
 	}
-	outFile << points[slices].x << "," << points[slices].y << "," << points[slices].z << " " << points[1].x << "," << points[1].y << "," << points[1].z << " " << points[originIndex].x << "," << points[originIndex].y << "," << points[originIndex].z << "\n";
+	outFile << "t: " << points[slices].x << "," << points[slices].y << "," << points[slices].z << " " << points[1].x << "," << points[1].y << "," << points[1].z << " " << points[originIndex].x << "," << points[originIndex].y << "," << points[originIndex].z << "\n";
 
 	outFile.close();
 }
