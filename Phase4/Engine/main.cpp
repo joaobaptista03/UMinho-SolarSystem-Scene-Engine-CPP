@@ -274,13 +274,10 @@ void drawModel(ParsedModel modelParsed) {
     bool hasColorOrTexture = modelParsed.hasColorOrTexture;
     ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
 
-	// TODO
+	// TODO TEXTURE
 	if (hasColorOrTexture) {
 		if (colorOrTexture.isTexture) {
-			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, 0);
-		} else {
-			glDisable(GL_TEXTURE_2D);
 		}
 	}
 
@@ -400,19 +397,20 @@ void renderScene() {
 
 	glEnable(GL_LIGHTING);
 
-	for (const Light& light : lights) { 
+	for (int i = 0; i < lights.size(); i++) {
+		Light light = lights[i];
 		if (light.type == "point") {
 			GLfloat pos[4] = {light.position.x, light.position.y, light.position.z, 1.0};
-			glLightfv(GL_LIGHT0, GL_POSITION, pos);
+			glLightfv(GL_LIGHT0 + i, GL_POSITION, pos);
 		} else if (light.type == "directional") {
-			GLfloat dir[3] = {light.direction.x, light.direction.y, light.direction.z};
-			glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
+			GLfloat dir[4] = {light.direction.x, light.direction.y, light.direction.z, 0.0};
+			glLightfv(GL_LIGHT0 + i, GL_POSITION, dir);
 		} else if (light.type == "spot") {
 			GLfloat pos[4] = {light.position.x, light.position.y, light.position.z, 1.0};
-			GLfloat dir[3] = {light.direction.x, light.direction.y, light.direction.z};
-			glLightfv(GL_LIGHT0, GL_POSITION, pos);
-			glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
-			glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, light.cutoff);
+			GLfloat dir[4] = {light.direction.x, light.direction.y, light.direction.z, 0.0};
+			glLightfv(GL_LIGHT0 + i, GL_POSITION, pos);
+			glLightfv(GL_LIGHT0 + i, GL_SPOT_DIRECTION, dir);
+			glLightf(GL_LIGHT0 + i, GL_SPOT_CUTOFF, light.cutoff);
 		}
 	}
 
@@ -1166,6 +1164,7 @@ int main(int argc, char *argv[]) {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	enableLights();
+	glEnable(GL_TEXTURE_2D);
 	glutMainLoop();
 
 
