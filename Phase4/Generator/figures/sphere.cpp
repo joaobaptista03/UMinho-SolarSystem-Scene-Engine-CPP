@@ -43,7 +43,7 @@ void generateSphere(const std::string &fileName, float radius, int slices, int s
         }
     }
 
-    // Triangles of the sphere with normals
+    // Triangles of the sphere with normals and texture coordinates
     for (int stack = 0; stack < stacks; ++stack) {
         for (int slice = 0; slice < slices; ++slice) {
             int topLeft = stack * (slices + 1) + slice;
@@ -67,6 +67,12 @@ void generateSphere(const std::string &fileName, float radius, int slices, int s
             normal3 = normalize(normal3);
             normal4 = normalize(normal4);
 
+            // Texture coordinates
+            float u1 = static_cast<float>(slice) / slices;
+            float u2 = static_cast<float>(slice + 1) / slices;
+            float v1 = static_cast<float>(stack) / stacks;
+            float v2 = static_cast<float>(stack + 1) / stacks;
+
             // Write first triangle
             outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
             outFile << normal2.x << "," << normal2.y << "," << normal2.z << " ";
@@ -74,6 +80,7 @@ void generateSphere(const std::string &fileName, float radius, int slices, int s
             outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                     << points[bottomLeft].x << "," << points[bottomLeft].y << "," << points[bottomLeft].z << " "
                     << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << "\n";
+            outFile << "v: " << u1 << "," << v1 << " " << u1 << "," << v2 << " " << u2 << "," << v2 << "\n";
 
             // Write second triangle
             outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
@@ -82,6 +89,7 @@ void generateSphere(const std::string &fileName, float radius, int slices, int s
             outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
                     << points[bottomRight].x << "," << points[bottomRight].y << "," << points[bottomRight].z << " "
                     << points[topRight].x << "," << points[topRight].y << "," << points[topRight].z << "\n";
+            outFile << "v: " << u1 << "," << v1 << " " << u2 << "," << v2 << " " << u2 << "," << v1 << "\n";
         }
     }
 

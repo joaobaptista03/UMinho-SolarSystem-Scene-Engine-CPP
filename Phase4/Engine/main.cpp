@@ -1,6 +1,8 @@
 #include <GL/glew.h>
 #include <GL/glut.h>
 
+#include <IL/il.h>
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -49,6 +51,7 @@ struct Rotate {
 struct ColorOrTexture {
 	bool isTexture = false;
 	std::string texture;
+	GLuint textureID;
 	float diffuse[4] = {200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1};
 	float ambient[4] = {50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f, 1};
 	float specular[4] = {0, 0, 0, 1};
@@ -77,6 +80,7 @@ struct Group {
 struct Model {
     GLuint vboId;
 	GLuint nboId;
+	GLuint tboId;
     int numVertices;
 };
 
@@ -90,7 +94,38 @@ struct Light {
 std::vector<Group> sceneGraph;
 std::stack<Group*> groupStack;
 std::map<std::string, Model> modelCache;
+std::map<std::string, GLuint> textureCache;
 std::vector<Light> lights;
+
+GLuint loadTexture(const std::string& textureFile) {
+    ILuint imageId;
+    GLuint textureId;
+    
+    ilGenImages(1, &imageId);
+    ilBindImage(imageId);
+    if (!ilLoadImage(textureFile.c_str())) {
+        std::cerr << "Cannot load image: " << textureFile << std::endl;
+        ilDeleteImages(1, &imageId);
+        return 0;
+    }
+
+    ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ilGetInteger(IL_IMAGE_WIDTH),
+                 ilGetInteger(IL_IMAGE_HEIGHT), 0, GL_RGBA, GL_UNSIGNED_BYTE, ilGetData());
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    ilDeleteImages(1, &imageId);
+
+    return textureId;
+}
 
 void multiplyMatrices(GLfloat result[16], const GLfloat mat1[16], const GLfloat mat2[16]) {
     for (int i = 0; i < 4; ++i) {
@@ -221,6 +256,15 @@ GLuint loadModelToNBO(const std::vector<float>& normals) {
 	return nboId;
 }
 
+GLuint loadModelToTBO(const std::vector<float>& texCoords) {
+    GLuint tboId;
+    glGenBuffers(1, &tboId);
+    glBindBuffer(GL_ARRAY_BUFFER, tboId);
+    glBufferData(GL_ARRAY_BUFFER, texCoords.size() * sizeof(float), &texCoords[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    return tboId;
+}
+
 void drawModel(ParsedModel modelParsed) {
     if (modelCache.find(modelParsed.model) == modelCache.end()) {
         std::ifstream inputFile(modelParsed.model);
@@ -232,61 +276,77 @@ void drawModel(ParsedModel modelParsed) {
         std::string line;
         std::vector<float> vertices;
         std::vector<float> normals;
-		std::vector<float> triangles;
+        std::vector<float> texCoords;  // New vector for texture coordinates
+
         while (std::getline(inputFile, line)) {
-			if(line[0] == 'n'){
-				std::istringstream iss(line.substr(3));
-				std::string token;
-				while (iss >> token) {
-					std::istringstream subIss(token);
-					std::string subToken;
-
-					while (std::getline(subIss, subToken, ',')) {
-						float subTokenFloat = std::stof(subToken);
-						normals.push_back(subTokenFloat);
-					}
-				}
-			}
-			else if(line[0] == 't'){
-				std::istringstream iss(line.substr(3));
-				std::string token;
-				while (iss >> token) {
-					std::istringstream subIss(token);
-					std::string subToken;
-
-					while (std::getline(subIss, subToken, ',')) {
-						float subTokenFloat = std::stof(subToken);
-						triangles.push_back(subTokenFloat);
-					}
-				}
-			}
-		}
+            if (line.substr(0, 2) == "t:") {  // Vertices (Triangles)
+                std::istringstream iss(line.substr(3));
+                std::string token;
+                while (iss >> token) {
+                    std::istringstream subIss(token);
+                    std::string subToken;
+                    while (std::getline(subIss, subToken, ',')) {
+                        float subTokenFloat = std::stof(subToken);
+                        vertices.push_back(subTokenFloat);
+                    }
+                }
+            } else if (line.substr(0, 2) == "n:") {  // Normals
+                std::istringstream iss(line.substr(3));
+                std::string token;
+                while (iss >> token) {
+                    std::istringstream subIss(token);
+                    std::string subToken;
+                    while (std::getline(subIss, subToken, ',')) {
+                        float subTokenFloat = std::stof(subToken);
+                        normals.push_back(subTokenFloat);
+                    }
+                }
+            } else if (line.substr(0, 2) == "v:") {  // Texture Coordinates
+                std::istringstream iss(line.substr(3));
+                std::string token;
+                while (iss >> token) {
+                    std::istringstream subIss(token);
+                    std::string subToken;
+                    while (std::getline(subIss, subToken, ',')) {
+                        float subTokenFloat = std::stof(subToken);
+                        texCoords.push_back(subTokenFloat);
+                    }
+                }
+            }
+        }
         inputFile.close();
-        
+
         Model model;
-		model.numVertices = triangles.size() / 3;
-		model.vboId = loadModelToVBO(triangles);
-		model.nboId = loadModelToNBO(normals);
-		modelCache[modelParsed.model] = model;
-	}
+        model.numVertices = vertices.size() / 3;
+        model.vboId = loadModelToVBO(vertices);
+        model.nboId = loadModelToNBO(normals);
+        model.tboId = loadModelToTBO(texCoords);  // Add this line
+        modelCache[modelParsed.model] = model;
+
+        std::cout << "Loaded model: " << modelParsed.model << std::endl;
+        std::cout << "Vertices: " << vertices.size() / 3 << " Normals: " << normals.size() / 3 << " TexCoords: " << texCoords.size() / 2 << std::endl;
+    }
+
     Model& model = modelCache[modelParsed.model];
 
-    bool hasColorOrTexture = modelParsed.hasColorOrTexture;
-    ColorOrTexture colorOrTexture = modelParsed.colorOrTexture;
+    if (modelParsed.hasColorOrTexture && modelParsed.colorOrTexture.isTexture) {
+        glEnable(GL_TEXTURE_2D); // Enable texturing
+        glBindTexture(GL_TEXTURE_2D, modelParsed.colorOrTexture.textureID);
 
-	// TODO TEXTURE
-	if (hasColorOrTexture) {
-		if (colorOrTexture.isTexture) {
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-	}
+        // Bind and enable texture coordinate array
+        glBindBuffer(GL_ARRAY_BUFFER, model.tboId);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glTexCoordPointer(2, GL_FLOAT, 0, nullptr);
+    } else {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, colorOrTexture.diffuse);
-	glMaterialfv(GL_FRONT, GL_AMBIENT, colorOrTexture.ambient);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, colorOrTexture.specular);
-	glMaterialfv(GL_FRONT, GL_EMISSION, colorOrTexture.emissive);
-	glMaterialf(GL_FRONT, GL_SHININESS, colorOrTexture.shininess);
-			
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, modelParsed.colorOrTexture.diffuse);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, modelParsed.colorOrTexture.ambient);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, modelParsed.colorOrTexture.specular);
+    glMaterialfv(GL_FRONT, GL_EMISSION, modelParsed.colorOrTexture.emissive);
+    glMaterialf(GL_FRONT, GL_SHININESS, modelParsed.colorOrTexture.shininess);
+
     glBindBuffer(GL_ARRAY_BUFFER, model.vboId);
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, 0, nullptr);
@@ -296,7 +356,15 @@ void drawModel(ParsedModel modelParsed) {
     glNormalPointer(GL_FLOAT, 0, nullptr);
 
     glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
+
     glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+
+    if (modelParsed.hasColorOrTexture && modelParsed.colorOrTexture.isTexture) {
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY); // Disable texture coord array
+        glDisable(GL_TEXTURE_2D); // Disable texturing
+    }
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
@@ -956,18 +1024,25 @@ void parseShininess(std::string line) {
 }
 
 void parseTexture(std::string line) {
-	Group* group = groupStack.top();
+    Group* group = groupStack.top();
 
-	std::size_t filePos = line.find("file=");
+    std::size_t filePos = line.find("file=");
+    if (filePos != std::string::npos) {
+        std::size_t fileStart = line.find("\"", filePos) + 1;
+        std::size_t fileEnd = line.find("\"", fileStart);
 
-	if (filePos != std::string::npos) {
-		std::size_t fileStart = line.find("\"", filePos) + 1;
-		std::size_t fileEnd = line.find("\"", fileStart);
+        std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
+        group->models.back().hasColorOrTexture = true;
+        group->models.back().colorOrTexture.isTexture = true;
+        group->models.back().colorOrTexture.texture = "../Textures/" + fileStr;
 
-		std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
-		group->models.back().hasColorOrTexture = true;
-		group->models.back().colorOrTexture.isTexture = true;
-	}
+        if (textureCache.find(fileStr) == textureCache.end()) {
+            GLuint texID = loadTexture(group->models.back().colorOrTexture.texture);
+            textureCache[fileStr] = texID;
+        }
+
+        group->models.back().colorOrTexture.textureID = textureCache[fileStr];
+    }
 }
 
 void parseLight(std::string line) {
@@ -1142,6 +1217,7 @@ int main(int argc, char *argv[]) {
 		return 2;
 	}
 
+	ilInit();
 	parseXML(inputFile);
 
 	glutInit(&argc, argv);

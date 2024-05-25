@@ -61,13 +61,18 @@ void generateCone(const std::string &fileName, float radius, float height, int s
     int baseStartIndex = 1;
     int originIndex = stacks * slices + 1;
 
-    // Sides triangles with normals
+    // Sides triangles with normals and texture coordinates
     for (int stack = 0; stack < stacks; ++stack) {
         for (int slice = 0; slice < slices; ++slice) {
             int bottomRight = baseStartIndex + (stack * slices) + slice;
             int bottomLeft = baseStartIndex + (stack * slices) + ((slice + 1) % slices);
             int topLeft = baseStartIndex + ((stack + 1) * slices) + ((slice + 1) % slices);
             int topRight = baseStartIndex + ((stack + 1) * slices) + slice;
+
+            float u1 = (float)slice / slices;
+            float u2 = (float)(slice + 1) / slices;
+            float v1 = (float)stack / stacks;
+            float v2 = (float)(stack + 1) / stacks;
 
             if (stack == stacks - 1) {
                 Point normal1 = normalize3(points[apexIndex]);
@@ -80,6 +85,7 @@ void generateCone(const std::string &fileName, float radius, float height, int s
                 outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
                 outFile << normal2.x << "," << normal2.y << "," << normal2.z << " ";
                 outFile << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+                outFile << "v: " << 0.5 << "," << 1.0 << " " << u2 << "," << v1 << " " << u1 << "," << v1 << "\n";
             } else {
                 Point normal1 = normalize3(points[topLeft]);
                 Point normal2 = normalize3(points[bottomLeft]);
@@ -93,6 +99,7 @@ void generateCone(const std::string &fileName, float radius, float height, int s
                 outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
                 outFile << normal2.x << "," << normal2.y << "," << normal2.z << " ";
                 outFile << normal3.x << "," << normal3.y << "," << normal3.z << "\n";
+                outFile << "v: " << u2 << "," << v2 << " " << u2 << "," << v1 << " " << u1 << "," << v1 << "\n";
 
                 // Second triangle
                 outFile << "t: " << points[topLeft].x << "," << points[topLeft].y << "," << points[topLeft].z << " "
@@ -101,13 +108,17 @@ void generateCone(const std::string &fileName, float radius, float height, int s
                 outFile << "n: " << normal1.x << "," << normal1.y << "," << normal1.z << " ";
                 outFile << normal3.x << "," << normal3.y << "," << normal3.z << " ";
                 outFile << normal4.x << "," << normal4.y << "," << normal4.z << "\n";
+                outFile << "v: " << u2 << "," << v2 << " " << u1 << "," << v1 << " " << u1 << "," << v2 << "\n";
             }
         }
     }
 
-    // Base triangles with normals
+    // Base triangles with normals and texture coordinates
     for (int slice = 1; slice < slices; ++slice) {
         Point normal = normalize3(points[originIndex]);
+
+        float u1 = (float)slice / slices;
+        float u2 = (float)(slice + 1) / slices;
 
         outFile << "t: " << points[slice].x << "," << points[slice].y << "," << points[slice].z << " "
                 << points[(slice + 1)].x << "," << points[(slice + 1)].y << "," << points[(slice + 1)].z << " "
@@ -115,6 +126,7 @@ void generateCone(const std::string &fileName, float radius, float height, int s
         outFile << "n: " << normal.x << "," << normal.y << "," << normal.z << " ";
         outFile << normal.x << "," << normal.y << "," << normal.z << " ";
         outFile << normal.x << "," << normal.y << "," << normal.z << "\n";
+        outFile << "v: " << u1 << "," << 0.0 << " " << u2 << "," << 0.0 << " " << (u1 + u2) / 2 << "," << 1.0 << "\n";
     }
     Point normal = normalize3(points[originIndex]);
     outFile << "t: " << points[slices].x << "," << points[slices].y << "," << points[slices].z << " "
@@ -123,6 +135,7 @@ void generateCone(const std::string &fileName, float radius, float height, int s
     outFile << "n: " << normal.x << "," << normal.y << "," << normal.z << " ";
     outFile << normal.x << "," << normal.y << "," << normal.z << " ";
     outFile << normal.x << "," << normal.y << "," << normal.z << "\n";
+    outFile << "v: " << 1.0 << "," << 0.0 << " " << 0.0 << "," << 0.0 << " " << 0.5 << "," << 1.0 << "\n";
 
     outFile.close();
 }

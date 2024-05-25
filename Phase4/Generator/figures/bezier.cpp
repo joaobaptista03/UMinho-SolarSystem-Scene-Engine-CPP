@@ -93,6 +93,7 @@ void writeBezierPatch(const std::string& filename, const std::vector<std::vector
                 outFile << "n: " << n1.x << "," << n1.y << "," << n1.z << " "
                         << n2.x << "," << n2.y << "," << n2.z << " "
                         << n3.x << "," << n3.y << "," << n3.z << "\n";
+                outFile << "v: " << u << "," << v << " " << u << "," << v_next << " " << u_next << "," << v << "\n";
 
                 // Second triangle
                 outFile << "t: " << p2.x << "," << p2.y << "," << p2.z << " "
@@ -101,6 +102,7 @@ void writeBezierPatch(const std::string& filename, const std::vector<std::vector
                 outFile << "n: " << n2.x << "," << n2.y << "," << n2.z << " "
                         << n4.x << "," << n4.y << "," << n4.z << " "
                         << n3.x << "," << n3.y << "," << n3.z << "\n";
+                outFile << "v: " << u << "," << v_next << " " << u_next << "," << v_next << " " << u_next << "," << v << "\n";
             }
         }
     }

@@ -10,11 +10,16 @@ struct Point
 	float x, y, z;
 };
 
+struct TexCoord
+{
+    float u, v;
+};
 
 void generateFace(std::ofstream &outFile, int divisions, float halfDimension, const std::string &axis, float normalDirection)
 {
 	float step = halfDimension * 2 / divisions;
 	std::vector<Point> points((divisions + 1) * (divisions + 1));
+	std::vector<TexCoord> texCoords((divisions + 1) * (divisions + 1));
     Point normal;
 
     // Set the normal vector based on the face orientation
@@ -42,18 +47,21 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
 				ponto.x = x;
 				ponto.y = y;
 				ponto.z = z;
+                texCoords[i * (divisions + 1) + j] = {static_cast<float>(j) / divisions, static_cast<float>(i) / divisions};
 			}
 			else if (axis == "xz")
 			{
 				ponto.x = x;
 				ponto.y = z;
 				ponto.z = y;
+                texCoords[i * (divisions + 1) + j] = {static_cast<float>(j) / divisions, static_cast<float>(i) / divisions};
 			}
 			else if (axis == "yz")
 			{
 				ponto.x = z;
 				ponto.y = x;
 				ponto.z = y;
+                texCoords[i * (divisions + 1) + j] = {static_cast<float>(j) / divisions, static_cast<float>(i) / divisions};
 			}
 
 			points[i * (divisions + 1) + j] = ponto;
@@ -108,6 +116,8 @@ void generateFace(std::ofstream &outFile, int divisions, float halfDimension, co
             outFile << "n: " << normal.x << "," << normal.y << "," << normal.z << " " << normal.x << "," << normal.y << "," << normal.z << " " << normal.x << "," << normal.y << "," << normal.z << "\n";
             outFile << "n: " << normal.x << "," << normal.y << "," << normal.z << " " << normal.x << "," << normal.y << "," << normal.z << " " << normal.x << "," << normal.y << "," << normal.z << "\n";
 
+            outFile << "v: " << texCoords[topLeft].u << "," << texCoords[topLeft].v << " " << texCoords[bottomLeft].u << "," << texCoords[bottomLeft].v << " " << texCoords[bottomRight].u << "," << texCoords[bottomRight].v << "\n";
+            outFile << "v: " << texCoords[topLeft].u << "," << texCoords[topLeft].v << " " << texCoords[bottomRight].u << "," << texCoords[bottomRight].v << " " << texCoords[topRight].u << "," << texCoords[topRight].v << "\n";
 		}
 	}
 }
