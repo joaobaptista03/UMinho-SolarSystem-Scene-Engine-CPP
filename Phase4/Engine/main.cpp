@@ -51,7 +51,6 @@ struct Rotate {
 struct ColorOrTexture {
 	bool isTexture = false;
 	std::string texture;
-	GLuint textureID;
 	float diffuse[4] = {200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1};
 	float ambient[4] = {50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f, 1};
 	float specular[4] = {0, 0, 0, 1};
@@ -105,17 +104,22 @@ GLint loadTexture(std::string s) {
     ilInit();
     ilEnable(IL_ORIGIN_SET);
     ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+
     ilGenImages(1, &t);
     ilBindImage(t);
     ilLoadImage((ILstring) s.c_str());
+
+    ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+
     tw = ilGetInteger(IL_IMAGE_WIDTH);
     th = ilGetInteger(IL_IMAGE_HEIGHT);
-    ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+	
     texData = ilGetData();
 
     glGenTextures(1, &texID);
 
     glBindTexture(GL_TEXTURE_2D, texID);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -348,11 +352,12 @@ void drawModel(ParsedModel modelParsed) {
     glNormalPointer(GL_FLOAT, 0, nullptr);
 
     if (modelParsed.hasColorOrTexture && modelParsed.colorOrTexture.isTexture) {
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, modelParsed.colorOrTexture.textureID);
+        glBindTexture(GL_TEXTURE_2D, textureCache[modelParsed.colorOrTexture.texture]);
+
         glBindBuffer(GL_ARRAY_BUFFER, model.tboId);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        glTexCoordPointer(2, GL_FLOAT, 0, nullptr);
+        glEnable(GL_TEXTURE_2D);
+        glTexCoordPointer(2, GL_FLOAT, 0, 0);
     } else {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
@@ -1036,15 +1041,18 @@ void parseTexture(std::string line) {
         std::string fileStr = line.substr(fileStart, fileEnd - fileStart);
         group->models.back().hasColorOrTexture = true;
         group->models.back().colorOrTexture.isTexture = true;
-        group->models.back().colorOrTexture.texture = "../Textures/" + fileStr;
+        group->models.back().colorOrTexture.texture = fileStr;
 
         if (textureCache.find(fileStr) == textureCache.end()) {
-            GLuint texID = loadTexture(group->models.back().colorOrTexture.texture);
-			std::cout << "Loaded texture " << texID << std::endl;
-            textureCache[fileStr] = texID;
-        }
+			// Imprime a textura que está a ser carregada
+			std::cout << "Loading texture " << "../Textures/" + fileStr << std::endl;
+            textureCache[fileStr] = loadTexture("/home/joaolopes2003/Desktop/Universidade/3ºano/2ºSemestre/CG/Software/Projeto/UMinho-SolarSystem-Scene-Engine-CPP/Phase4/Textures/" + fileStr);
 
-        group->models.back().colorOrTexture.textureID = textureCache[fileStr];
+			// Verifica se a textura foi carregada com sucesso
+			if (textureCache[fileStr] == 0) {
+				std::cerr << "Error: Texture " << fileStr << " could not be loaded.\n";
+			}
+        }
     }
 }
 
@@ -1244,6 +1252,14 @@ int main(int argc, char *argv[]) {
 	glEnable(GL_CULL_FACE);
 	enableLights();
 	glEnable(GL_TEXTURE_2D);
+
+	textureCache["relva.jpg"] = loadTexture("../Textures/relva.jpg");
+	textureCache["box.jpg"] = loadTexture("../Textures/box.jpg");
+	textureCache["cone.jpg"] = loadTexture("../Textures/cone.jpg");
+	textureCache["earth.jpg"] = loadTexture("../Textures/earth.jpg");
+	textureCache["teapot.jpg"] = loadTexture("../Textures/teapot.jpg");
+
+
 	glutMainLoop();
 
 
