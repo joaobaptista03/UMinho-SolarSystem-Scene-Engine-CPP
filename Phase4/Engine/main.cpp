@@ -21,6 +21,7 @@ int lookAtX = 0, lookAtY = 0, lookAtZ = 0;
 int upX = 0, upY = 1, upZ = 0;
 int fov = 60, near = 1, far = 1000;
 int startX, startY, tracking = 0;
+unsigned int textureCounter = 0;
 
 float alfa = 0.0f, beta = 0.0f, radius = 5.0f;
 
@@ -100,7 +101,8 @@ std::vector<Light> lights;
 GLint loadTexture(std::string s) {
     unsigned int t, tw, th;
     unsigned char* texData;
-    unsigned int texID;
+    unsigned int texID = textureCounter;
+	textureCounter++;
 
     ilInit();
     ilEnable(IL_ORIGIN_SET);
