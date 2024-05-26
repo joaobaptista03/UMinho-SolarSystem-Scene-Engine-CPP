@@ -1,5 +1,6 @@
 #include <GL/glew.h>
 #include <GL/glut.h>
+#include <dirent.h>
 
 #include <IL/il.h>
 
@@ -1253,13 +1254,29 @@ int main(int argc, char *argv[]) {
 	enableLights();
 	glEnable(GL_TEXTURE_2D);
 
-	textureCache["relva.jpg"] = loadTexture("../Textures/relva.jpg");
-	textureCache["box.jpg"] = loadTexture("../Textures/box.jpg");
-	textureCache["cone.jpg"] = loadTexture("../Textures/cone.jpg");
-	textureCache["earth.jpg"] = loadTexture("../Textures/earth.jpg");
-	textureCache["teapot.jpg"] = loadTexture("../Textures/teapot.jpg");
+	// Open the directory
+    DIR *dir;
+    struct dirent *ent;
+    if ((dir = opendir("../Textures")) != NULL) {
+        // Traverse the directory entries
+        while ((ent = readdir(dir)) != NULL) {
+            // Skip the "." and ".." entries
+            if (ent->d_name[0] == '.')
+                continue;
 
+            // Build the full file path
+            std::string filePath = std::string("../Textures/") + ent->d_name;
 
+            // Load the texture
+            textureCache[ent->d_name] = loadTexture(filePath);
+        }
+        closedir(dir);
+    } else {
+        // Could not open directory
+        std::cerr << "Could not open directory: ../Textures" << std::endl;
+        return 3;
+    }
+	
 	glutMainLoop();
 
 
