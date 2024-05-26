@@ -17,10 +17,10 @@
 			<scale x="5" y="5" z="5" />
 			<rotate time="50" x="0" y="1" z="0" />
 		</transform>
-		<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+		<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
-						<ambient R="0" G="8" B="18" />
+						<diffuse R="200" G="87" B="0" />
+						<ambient R="0" G="0" B="0" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
 						<shininess value="128" />
@@ -44,9 +44,9 @@
 			<scale x="1.1" y="1.1" z="1.1"/>
 		</transform>
 		<models> 
-			<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="200" G="120" B="0" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
@@ -71,9 +71,9 @@
 			<scale x="1.7" y="1.7" z="1.7"/>
 		</transform>
 		<models> 
-			<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="200" G="150" B="0" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
@@ -111,9 +111,9 @@
 				</translate>
 				<scale x="0.5" y="0.5" z="0.5" />
 			</transform>
-			<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="255" G="255" B="255" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
@@ -122,9 +122,9 @@
 				</model>
 		</group>
 		<models> 
-			<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="00" G="100" B="184" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
@@ -149,9 +149,9 @@
 			<scale x="1.3" y="1.3" z="1.3"/>
 		</transform>
 		<models> 
-			<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="200" G="87" B="0" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
@@ -176,9 +176,9 @@
 			<scale x="3" y="3" z="3"/>
 		</transform>
 		<models> 
-			<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="180" G="87" B="0" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
@@ -203,9 +203,9 @@
 			<scale x="2.7" y="2.7" z="2.7"/>
 		</transform>
 		<models> 
-			<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="100" G="87" B="0" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
@@ -230,9 +230,9 @@
 			<scale x="2.2" y="2.2" z="2.2"/>
 		</transform>
 		<models> 
-			<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="00" G="10" B="10" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
@@ -257,9 +257,9 @@
 			<scale x="2.1" y="2.1" z="2.1"/>
 		</transform>
 		<models> 
-			<model file="sphere_1_8_8.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="00" G="100" B="200" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
@@ -283,9 +283,9 @@
 			<rotate angle="-90" x="1" y="0" z="0" />
 			<scale x="0.5" y="0.5" z="0.5"/>
 		</transform>
-		<model file="bezier_10.3d" > <!-- generator sphere 1 8 8 sphere_1_8_8.3d -->
+		<model file="bezier_10.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
 					<color>
-						<diffuse R="00" G="87" B="184" />
+						<diffuse R="255" G="255" B="255" />
 						<ambient R="0" G="8" B="18" />
 						<specular R="255" G="255" B="255" />
 						<emissive R="0" G="0" B="0" />
