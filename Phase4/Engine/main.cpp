@@ -367,7 +367,19 @@ void drawModel(ParsedModel modelParsed) {
         glDisable(GL_TEXTURE_2D);
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+	float diffuse[4] = {200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1};
+	float ambient[4] = {50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f, 1};
+	float specular[4] = {0, 0, 0, 1};
+	float emissive[4] = {0, 0, 0, 1};
+	float shininess = 0;
+
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_EMISSION, emissive);
+	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void drawGroup(const Group& group, float currentTime) {
