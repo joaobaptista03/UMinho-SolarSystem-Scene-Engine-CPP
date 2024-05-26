@@ -98,7 +98,7 @@ std::map<std::string, Model> modelCache;
 std::map<std::string, GLuint> textureCache;
 std::vector<Light> lights;
 
-GLint loadTexture(std::string s) {
+GLuint loadTexture(std::string s) {
     unsigned int t, tw, th;
     unsigned char* texData;
     unsigned int texID = textureCounter;
