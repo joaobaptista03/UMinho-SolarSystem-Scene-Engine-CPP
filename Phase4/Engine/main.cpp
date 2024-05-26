@@ -97,34 +97,36 @@ std::map<std::string, Model> modelCache;
 std::map<std::string, GLuint> textureCache;
 std::vector<Light> lights;
 
-GLuint loadTexture(const std::string& textureFile) {
-    ILuint imageId;
-    GLuint textureId;
-    
-    ilGenImages(1, &imageId);
-    ilBindImage(imageId);
-    if (!ilLoadImage(textureFile.c_str())) {
-        std::cerr << "Cannot load image: " << textureFile << std::endl;
-        ilDeleteImages(1, &imageId);
-        return 0;
-    }
+GLuint loadTexture(std::string textureFile) {
+    unsigned int t, tw, th;
+    unsigned char* texData;
+    GLuint texID;
 
+    ilInit();
+    ilEnable(IL_ORIGIN_SET);
+    ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+    ilGenImages(1, &t);
+    ilBindImage(t);
+    ilLoadImage((ILstring)textureFile.c_str());
+    tw = ilGetInteger(IL_IMAGE_WIDTH);
+    th = ilGetInteger(IL_IMAGE_HEIGHT);
     ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+    texData = ilGetData();
 
-    glGenTextures(1, &textureId);
-    glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ilGetInteger(IL_IMAGE_WIDTH),
-                 ilGetInteger(IL_IMAGE_HEIGHT), 0, GL_RGBA, GL_UNSIGNED_BYTE, ilGetData());
+    glGenTextures(1, &texID);
 
+    glBindTexture(GL_TEXTURE_2D, texID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,tw,th,0,GL_RGBA,GL_UNSIGNED_BYTE,texData);
+	glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
-    ilDeleteImages(1, &imageId);
 
-    return textureId;
+    return texID;
 }
 
 void multiplyMatrices(GLfloat result[16], const GLfloat mat1[16], const GLfloat mat2[16]) {
@@ -276,7 +278,7 @@ void drawModel(ParsedModel modelParsed) {
         std::string line;
         std::vector<float> vertices;
         std::vector<float> normals;
-        std::vector<float> texCoords;  // New vector for texture coordinates
+        std::vector<float> texCoords;
 
         while (std::getline(inputFile, line)) {
             if (line.substr(0, 2) == "t:") {  // Vertices (Triangles)
@@ -320,7 +322,7 @@ void drawModel(ParsedModel modelParsed) {
         model.numVertices = vertices.size() / 3;
         model.vboId = loadModelToVBO(vertices);
         model.nboId = loadModelToNBO(normals);
-        model.tboId = loadModelToTBO(texCoords);  // Add this line
+        model.tboId = loadModelToTBO(texCoords);
         modelCache[modelParsed.model] = model;
 
         std::cout << "Loaded model: " << modelParsed.model << std::endl;
@@ -329,17 +331,6 @@ void drawModel(ParsedModel modelParsed) {
 
     Model& model = modelCache[modelParsed.model];
 
-    if (modelParsed.hasColorOrTexture && modelParsed.colorOrTexture.isTexture) {
-        glEnable(GL_TEXTURE_2D); // Enable texturing
-        glBindTexture(GL_TEXTURE_2D, modelParsed.colorOrTexture.textureID);
-
-        // Bind and enable texture coordinate array
-        glBindBuffer(GL_ARRAY_BUFFER, model.tboId);
-        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-        glTexCoordPointer(2, GL_FLOAT, 0, nullptr);
-    } else {
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
 
     glMaterialfv(GL_FRONT, GL_DIFFUSE, modelParsed.colorOrTexture.diffuse);
     glMaterialfv(GL_FRONT, GL_AMBIENT, modelParsed.colorOrTexture.ambient);
@@ -355,14 +346,26 @@ void drawModel(ParsedModel modelParsed) {
     glEnableClientState(GL_NORMAL_ARRAY);
     glNormalPointer(GL_FLOAT, 0, nullptr);
 
+
+    if (modelParsed.hasColorOrTexture && modelParsed.colorOrTexture.isTexture) {
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, modelParsed.colorOrTexture.textureID);
+
+        glBindBuffer(GL_ARRAY_BUFFER, model.tboId);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glTexCoordPointer(2, GL_FLOAT, 0, nullptr);
+    } else {
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
     glDrawArrays(GL_TRIANGLES, 0, model.numVertices);
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
 
     if (modelParsed.hasColorOrTexture && modelParsed.colorOrTexture.isTexture) {
-        glDisableClientState(GL_TEXTURE_COORD_ARRAY); // Disable texture coord array
-        glDisable(GL_TEXTURE_2D); // Disable texturing
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+        glDisable(GL_TEXTURE_2D);
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
