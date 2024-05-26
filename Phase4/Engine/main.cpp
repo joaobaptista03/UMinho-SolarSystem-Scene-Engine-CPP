@@ -1052,7 +1052,6 @@ void parseTexture(std::string line) {
 
         if (textureCache.find(fileStr) == textureCache.end()) {
             GLuint texID = loadTexture(group->models.back().colorOrTexture.texture);
-			std::cout << "Loaded texture " << texID << std::endl;
             textureCache[fileStr] = texID;
         }
 
