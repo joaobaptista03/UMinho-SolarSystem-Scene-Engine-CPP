@@ -97,17 +97,17 @@ std::map<std::string, Model> modelCache;
 std::map<std::string, GLuint> textureCache;
 std::vector<Light> lights;
 
-GLuint loadTexture(std::string textureFile) {
+GLint loadTexture(std::string s) {
     unsigned int t, tw, th;
     unsigned char* texData;
-    GLuint texID;
+    unsigned int texID;
 
     ilInit();
     ilEnable(IL_ORIGIN_SET);
     ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
     ilGenImages(1, &t);
     ilBindImage(t);
-    ilLoadImage((ILstring)textureFile.c_str());
+    ilLoadImage((ILstring) s.c_str());
     tw = ilGetInteger(IL_IMAGE_WIDTH);
     th = ilGetInteger(IL_IMAGE_HEIGHT);
     ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
@@ -120,14 +120,15 @@ GLuint loadTexture(std::string textureFile) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tw, th, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData);
 
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,tw,th,0,GL_RGBA,GL_UNSIGNED_BYTE,texData);
-	glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     return texID;
 }
+
 
 void multiplyMatrices(GLfloat result[16], const GLfloat mat1[16], const GLfloat mat2[16]) {
     for (int i = 0; i < 4; ++i) {
@@ -346,11 +347,9 @@ void drawModel(ParsedModel modelParsed) {
     glEnableClientState(GL_NORMAL_ARRAY);
     glNormalPointer(GL_FLOAT, 0, nullptr);
 
-
     if (modelParsed.hasColorOrTexture && modelParsed.colorOrTexture.isTexture) {
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, modelParsed.colorOrTexture.textureID);
-
         glBindBuffer(GL_ARRAY_BUFFER, model.tboId);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glTexCoordPointer(2, GL_FLOAT, 0, nullptr);
@@ -1041,6 +1040,7 @@ void parseTexture(std::string line) {
 
         if (textureCache.find(fileStr) == textureCache.end()) {
             GLuint texID = loadTexture(group->models.back().colorOrTexture.texture);
+			std::cout << "Loaded texture " << texID << std::endl;
             textureCache[fileStr] = texID;
         }
 
