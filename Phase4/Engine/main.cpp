@@ -237,6 +237,7 @@ void getGlobalCatmullRomPoint(float gt, const std::vector<Point>& controlPoints,
 }
 
 void drawCatmullRomCurve(const std::vector<Point>& controlPoints) {
+	glDisable(GL_LIGHTING);
 	Point pos, deriv;
 	glBegin(GL_LINE_LOOP);
 	for (float gt = 0; gt < 1; gt += 0.01) {
@@ -244,6 +245,7 @@ void drawCatmullRomCurve(const std::vector<Point>& controlPoints) {
 		glVertex3f(pos.x, pos.y, pos.z);
 	}
 	glEnd();
+	glEnable(GL_LIGHTING);
 }
 
 GLuint loadModelToVBO(const std::vector<float>& vertices) {
@@ -1048,11 +1050,6 @@ void parseTexture(std::string line) {
 			// Imprime a textura que está a ser carregada
 			std::cout << "Loading texture " << "../Textures/" + fileStr << std::endl;
             textureCache[fileStr] = loadTexture("/home/joaolopes2003/Desktop/Universidade/3ºano/2ºSemestre/CG/Software/Projeto/UMinho-SolarSystem-Scene-Engine-CPP/Phase4/Textures/" + fileStr);
-
-			// Verifica se a textura foi carregada com sucesso
-			if (textureCache[fileStr] == 0) {
-				std::cerr << "Error: Texture " << fileStr << " could not be loaded.\n";
-			}
         }
     }
 }
