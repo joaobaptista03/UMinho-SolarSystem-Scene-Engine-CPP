@@ -332,9 +332,6 @@ void drawModel(ParsedModel modelParsed) {
         model.nboId = loadModelToNBO(normals);
         model.tboId = loadModelToTBO(texCoords);
         modelCache[modelParsed.model] = model;
-
-        std::cout << "Loaded model: " << modelParsed.model << std::endl;
-        std::cout << "Vertices: " << vertices.size() / 3 << " Normals: " << normals.size() / 3 << " TexCoords: " << texCoords.size() / 2 << std::endl;
     }
 
     Model& model = modelCache[modelParsed.model];
@@ -1047,8 +1044,6 @@ void parseTexture(std::string line) {
         group->models.back().colorOrTexture.texture = fileStr;
 
         if (textureCache.find(fileStr) == textureCache.end()) {
-			// Imprime a textura que está a ser carregada
-			std::cout << "Loading texture " << "../Textures/" + fileStr << std::endl;
             textureCache[fileStr] = loadTexture("/home/joaolopes2003/Desktop/Universidade/3ºano/2ºSemestre/CG/Software/Projeto/UMinho-SolarSystem-Scene-Engine-CPP/Phase4/Textures/" + fileStr);
         }
     }

@@ -22,7 +22,7 @@
 			<rotate time="50" x="0" y="1" z="0" />
 		</transform>
 		<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere_1_100_100.3d -->
-					<texture file = "sunmap.jpg" />
+					<texture file = "sun.jpg" />
 				</model>
 	</group>
 	<!--Mercury-->
@@ -43,7 +43,7 @@
 		</transform>
 		<models> 
 			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
-					<texture file = "mercurymap.jpg" />
+					<texture file = "mercury.jpg" />
 				</model>
 	</group>
 	<!--Venus-->
@@ -64,7 +64,7 @@
 		</transform>
 		<models> 
 			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
-					<texture file = "venusmap.jpg" />
+					<texture file = "venus.jpg" />
 				</model>
 	</group>
 	<!--Hearth and Moon-->
@@ -98,12 +98,12 @@
 				<scale x="0.5" y="0.5" z="0.5" />
 			</transform>
 			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
-					<texture file = "moonmap1k.jpg" />
+					<texture file = "moon.jpg" />
 				</model>
 		</group>
 		<models> 
 			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
-					<texture file = "earthmap1k.jpg" />
+					<texture file = "earth.jpg" />
 				</model>
 	</group>
 	<!--Mars-->
@@ -124,7 +124,7 @@
 		</transform>
 		<models> 
 			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
-					<texture file = "marsmap1k.jpg" />
+					<texture file = "mars.jpg" />
 				</model>
 	</group>
 	<!--Jupiter-->
@@ -145,7 +145,7 @@
 		</transform>
 		<models> 
 			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
-					<texture file = "jupitermap.jpg" />
+					<texture file = "jupiter.jpg" />
 				</model>
 	</group>
 	<!--Saturn-->
@@ -166,7 +166,7 @@
 		</transform>
 		<models> 
 			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
-					<texture file = "saturnmap.jpg" />
+					<texture file = "saturn.jpg" />
 				</model>
 	</group>
 	<!--Uranus-->
@@ -187,7 +187,7 @@
 		</transform>
 		<models> 
 			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
-					<texture file = "uranusmap.jpg" />
+					<texture file = "uranus.jpg" />
 				</model>
 	</group>
 	<!--Neptune-->
@@ -208,7 +208,7 @@
 		</transform>
 		<models> 
 			<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
-					<texture file = "neptunemap.jpg" />
+					<texture file = "neptune.jpg" />
 				</model>
 	</group>
 	<!--Comet-->
