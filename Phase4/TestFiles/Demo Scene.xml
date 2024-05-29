@@ -21,7 +21,7 @@
 			<scale x="5" y="5" z="5" />
 			<rotate time="50" x="0" y="1" z="0" />
 		</transform>
-		<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere.3d -->
+		<model file="sphere.3d" > <!-- generator sphere 1 100 100 sphere_1_100_100.3d -->
 					<texture file = "sunmap.jpg" />
 				</model>
 	</group>
