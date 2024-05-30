@@ -17,9 +17,9 @@
 #define _USE_MATH_DEFINES
 
 int windowWidth = 0, windowHeight = 0;
-int cameraX = 0, cameraY = 0, cameraZ = 0;
-int lookAtX = 0, lookAtY = 0, lookAtZ = 0;
-int upX = 0, upY = 1, upZ = 0;
+float cameraX = 0, cameraY = 0, cameraZ = 0;
+float lookAtX = 0, lookAtY = 0, lookAtZ = 0;
+float upX = 0, upY = 1, upZ = 0;
 int fov = 60, near = 1, far = 1000;
 int startX, startY, tracking = 0;
 
@@ -629,8 +629,8 @@ void parseWindow(std::string line) {
 		std::string widthStr = line.substr(widthStart, widthEnd - widthStart);
 		std::string heightStr = line.substr(heightStart, heightEnd - heightStart);
 
-		windowWidth = std::stoi(widthStr);
-		windowHeight = std::stoi(heightStr);
+		windowWidth = std::stof(widthStr);
+		windowHeight = std::stof(heightStr);
 	}
 }
 
@@ -651,9 +651,9 @@ void parsePosition(std::string line) {
 		std::string yStr = line.substr(yStart, yEnd - yStart);
 		std::string zStr = line.substr(zStart, zEnd - zStart);
 
-		cameraX = std::stoi(xStr);
-		cameraY = std::stoi(yStr);
-		cameraZ = std::stoi(zStr);
+		cameraX = std::stof(xStr);
+		cameraY = std::stof(yStr);
+		cameraZ = std::stof(zStr);
 	}
 
 	radius = sqrt(cameraX*cameraX + cameraY*cameraY + cameraZ*cameraZ);
@@ -678,9 +678,9 @@ void parseLookAt(std::string line) {
 		std::string yStr = line.substr(yStart, yEnd - yStart);
 		std::string zStr = line.substr(zStart, zEnd - zStart);
 
-		lookAtX = std::stoi(xStr);
-		lookAtY = std::stoi(yStr);
-		lookAtZ = std::stoi(zStr);
+		lookAtX = std::stof(xStr);
+		lookAtY = std::stof(yStr);
+		lookAtZ = std::stof(zStr);
 	}
 }
 
@@ -701,9 +701,9 @@ void parseUp(std::string line) {
 		std::string yStr = line.substr(yStart, yEnd - yStart);
 		std::string zStr = line.substr(zStart, zEnd - zStart);
 
-		upX = std::stoi(xStr);
-		upY = std::stoi(yStr);
-		upZ = std::stoi(zStr);
+		upX = std::stof(xStr);
+		upY = std::stof(yStr);
+		upZ = std::stof(zStr);
 
 	}
 }
@@ -725,9 +725,9 @@ void parseProjection(std::string line) {
 		std::string nearStr = line.substr(nearStart, nearEnd - nearStart);
 		std::string farStr = line.substr(farStart, farEnd - farStart);
 
-		fov = std::stoi(fovStr);
-		near = std::stoi(nearStr);
-		far = std::stoi(farStr);
+		fov = std::stof(fovStr);
+		near = std::stof(nearStr);
+		far = std::stof(farStr);
 	}
 }
 
